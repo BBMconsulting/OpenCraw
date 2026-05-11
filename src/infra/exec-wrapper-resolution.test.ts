@@ -1,11 +1,13 @@
 import { describe, expect, test } from "vitest";
 import {
   basenameLower,
+  extractEnvAssignmentKeysFromDispatchWrappers,
   extractShellWrapperCommand,
   extractShellWrapperInlineCommand,
   hasEnvManipulationBeforeShellWrapper,
   isDispatchWrapperExecutable,
   isShellWrapperExecutable,
+  isShellWrapperInvocation,
   normalizeExecutableToken,
   resolveDispatchWrapperTrustPlan,
   resolveShellWrapperTransportArgv,
@@ -113,6 +115,22 @@ describe("unwrapEnvInvocation", () => {
     {
       argv: ["env", "--chdir=/tmp", "pwsh", "-Command", "Get-Date"],
       expected: ["pwsh", "-Command", "Get-Date"],
+    },
+    {
+      argv: ["env", "-P", "/usr/bin", "python3", "-c", "print(1)"],
+      expected: ["python3", "-c", "print(1)"],
+    },
+    {
+      argv: ["env", "-S", "python3 -c", "print(1)"],
+      expected: ["python3", "-c", "print(1)"],
+    },
+    {
+      argv: ["env", "--split-string=python3 -c", "print(1)"],
+      expected: ["python3", "-c", "print(1)"],
+    },
+    {
+      argv: ["env", "-Spython3 -c", "print(1)"],
+      expected: ["python3", "-c", "print(1)"],
     },
     {
       argv: ["env", "-", "bash", "-lc", "echo hi"],
@@ -402,17 +420,63 @@ describe("resolveShellWrapperTransportArgv", () => {
   });
 });
 
+describe("isShellWrapperInvocation", () => {
+  test.each([
+    {
+      argv: ["bash", "script.sh"],
+      expected: true,
+    },
+    {
+      argv: ["/usr/bin/env", "SHELLOPTS=xtrace", "bash", "-lc", "echo hi"],
+      expected: true,
+    },
+    {
+      argv: ["busybox", "sh", "script.sh"],
+      expected: true,
+    },
+    {
+      argv: ["/usr/bin/env", "FOO=bar", "/usr/bin/printf", "ok"],
+      expected: false,
+    },
+  ])("detects shell-wrapper executable invocations for %j", ({ argv, expected }) => {
+    expect(isShellWrapperInvocation(argv)).toBe(expected);
+  });
+});
+
+describe("extractEnvAssignmentKeysFromDispatchWrappers", () => {
+  test.each([
+    {
+      argv: ["env", "FOO=bar", "BAR=baz", "bash", "-lc", "echo hi"],
+      expected: ["BAR", "FOO"],
+    },
+    {
+      argv: ["nice", "-n", "5", "env", "-u", "PATH", "TERM=xterm", "bash", "-lc", "echo hi"],
+      expected: ["TERM"],
+    },
+    {
+      argv: ["env", "--split-string", "FOO=bar", "bash", "-lc", "echo hi"],
+      expected: [],
+    },
+    {
+      argv: ["env", "--", "bash", "-lc", "echo hi"],
+      expected: [],
+    },
+  ])("extracts env assignment prelude keys for %j", ({ argv, expected }) => {
+    expect(extractEnvAssignmentKeysFromDispatchWrappers(argv)).toEqual(expected);
+  });
+});
+
 describe("extractShellWrapperCommand", () => {
   test.each([
     {
       argv: ["bash", "-lc", "echo hi"],
       expectedInline: "echo hi",
-      expectedCommand: { isWrapper: true, command: "echo hi" },
+      expectedCommand: { isWrapper: true, command: null },
     },
     {
       argv: ["busybox", "sh", "-lc", "echo hi"],
       expectedInline: "echo hi",
-      expectedCommand: { isWrapper: true, command: "echo hi" },
+      expectedCommand: { isWrapper: true, command: null },
     },
     {
       argv: ["env", "--", "pwsh", "-Command", "Get-Date"],
@@ -430,7 +494,7 @@ describe("extractShellWrapperCommand", () => {
   });
 
   test("prefers an explicit raw command override when provided", () => {
-    expect(extractShellWrapperCommand(["bash", "-lc", "echo hi"], "  run this instead  ")).toEqual({
+    expect(extractShellWrapperCommand(["bash", "-c", "echo hi"], "  run this instead  ")).toEqual({
       isWrapper: true,
       command: "run this instead",
     });

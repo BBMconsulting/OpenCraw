@@ -12,6 +12,7 @@ const resolveDefaultAccountId = () => DEFAULT_ACCOUNT_ID;
 const mocks = vi.hoisted(() => ({
   readConfigFileSnapshot: vi.fn(),
   replaceConfigFile: vi.fn(),
+  refreshPluginRegistryAfterConfigMutation: vi.fn(async () => undefined),
   resolveInstallableChannelPlugin: vi.fn(),
 }));
 
@@ -36,6 +37,10 @@ vi.mock("../../config/config.js", async () => {
     replaceConfigFile: mocks.replaceConfigFile,
   };
 });
+
+vi.mock("../../cli/plugins-registry-refresh.js", () => ({
+  refreshPluginRegistryAfterConfigMutation: mocks.refreshPluginRegistryAfterConfigMutation,
+}));
 
 vi.mock("../channel-setup/channel-plugin-resolution.js", () => ({
   resolveInstallableChannelPlugin: mocks.resolveInstallableChannelPlugin,
@@ -142,11 +147,17 @@ describe("channelsCapabilitiesCommand", () => {
 
     await channelsCapabilitiesCommand({ channel: "slack" }, runtime);
 
-    const output = logs.join("\n");
-    expect(output).toContain("Bot scopes");
-    expect(output).toContain("User scopes");
-    expect(output).toContain("chat:write");
-    expect(output).toContain("users:read");
+    expect(logs).toStrictEqual([
+      [
+        "slack:default",
+        "Support: chatTypes=direct",
+        "Actions: send, broadcast, poll",
+        "Bot: @openclaw",
+        "Team: team",
+        "Bot scopes (auth.scopes): chat:write",
+        "User scopes (auth.scopes): users:read",
+      ].join("\n"),
+    ]);
   });
 
   it("prints Teams Graph permission hints when present", async () => {
@@ -181,9 +192,15 @@ describe("channelsCapabilitiesCommand", () => {
 
     await channelsCapabilitiesCommand({ channel: "msteams" }, runtime);
 
-    const output = logs.join("\n");
-    expect(output).toContain("ChannelMessage.Read.All (channel history)");
-    expect(output).toContain("Files.Read.All (files (OneDrive))");
+    expect(logs).toStrictEqual([
+      [
+        "msteams:default",
+        "Support: chatTypes=direct",
+        "Actions: send, broadcast, poll",
+        "App: app-id",
+        "Graph roles: ChannelMessage.Read.All (channel history), Files.Read.All (files (OneDrive))",
+      ].join("\n"),
+    ]);
   });
 
   it("installs an explicit optional channel before rendering capabilities", async () => {
@@ -203,24 +220,34 @@ describe("channelsCapabilitiesCommand", () => {
       channelId: "whatsapp",
       plugin,
       configChanged: true,
+      pluginInstalled: true,
     });
     vi.mocked(listChannelPlugins).mockReturnValue([]);
     vi.mocked(getChannelPlugin).mockReturnValue(undefined);
 
     await channelsCapabilitiesCommand({ channel: "whatsapp" }, runtime);
 
-    expect(mocks.resolveInstallableChannelPlugin).toHaveBeenCalledWith(
-      expect.objectContaining({
-        rawChannel: "whatsapp",
-        allowInstall: true,
-      }),
-    );
-    expect(mocks.replaceConfigFile).toHaveBeenCalledWith({
-      nextConfig: expect.objectContaining({
-        plugins: { entries: { whatsapp: { enabled: true } } },
-      }),
-      baseHash: "config-1",
+    const resolveParams = mocks.resolveInstallableChannelPlugin.mock.calls[0]?.[0];
+    expect(resolveParams?.rawChannel).toBe("whatsapp");
+    expect(resolveParams?.allowInstall).toBe(true);
+
+    const replaceParams = mocks.replaceConfigFile.mock.calls[0]?.[0];
+    expect(replaceParams?.nextConfig.plugins).toStrictEqual({
+      entries: { whatsapp: { enabled: true } },
     });
-    expect(logs.join("\n")).toContain("Probe: linked");
+    expect(replaceParams?.baseHash).toBe("config-1");
+
+    const refreshCalls = mocks.refreshPluginRegistryAfterConfigMutation.mock
+      .calls as unknown as Array<[{ reason?: string }]>;
+    const refreshParams = refreshCalls[0]?.[0];
+    expect(refreshParams?.reason).toBe("source-changed");
+    expect(logs).toStrictEqual([
+      [
+        "whatsapp:default",
+        "Support: chatTypes=direct",
+        "Actions: send, broadcast, poll",
+        "Probe: linked",
+      ].join("\n"),
+    ]);
   });
 });

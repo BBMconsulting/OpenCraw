@@ -1,5 +1,5 @@
+import { createStartAccountContext } from "openclaw/plugin-sdk/channel-test-helpers";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createStartAccountContext } from "../../../test/helpers/plugins/start-account-context.js";
 import type { PluginRuntime } from "../runtime-api.js";
 import { startNostrGatewayAccount } from "./gateway.js";
 import { setNostrRuntime } from "./runtime.js";
@@ -17,9 +17,12 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("./nostr-bus.js", () => ({
   DEFAULT_RELAYS: ["wss://relay.example.com"],
+  startNostrBus: mocks.startNostrBus,
+}));
+
+vi.mock("./nostr-key-utils.js", () => ({
   getPublicKeyFromPrivate: vi.fn(() => "bot-pubkey"),
   normalizePubkey: mocks.normalizePubkey,
-  startNostrBus: mocks.startNostrBus,
 }));
 
 function createMockBus() {
@@ -160,12 +163,11 @@ describe("nostr inbound gateway path", () => {
 
     expect(harness.recordInboundSession).toHaveBeenCalledTimes(1);
     expect(harness.dispatchReplyWithBufferedBlockDispatcher).toHaveBeenCalledTimes(1);
-    expect(harness.dispatchReplyWithBufferedBlockDispatcher.mock.calls[0]?.[0]?.ctx).toMatchObject({
-      BodyForAgent: "hello from nostr",
-      SenderId: "sender-pubkey",
-      MessageSid: "event-123",
-      CommandAuthorized: true,
-    });
+    const ctx = harness.dispatchReplyWithBufferedBlockDispatcher.mock.calls[0]?.[0]?.ctx;
+    expect(ctx?.BodyForAgent).toBe("hello from nostr");
+    expect(ctx?.SenderId).toBe("sender-pubkey");
+    expect(ctx?.MessageSid).toBe("event-123");
+    expect(ctx?.CommandAuthorized).toBe(true);
     expect(sendReply).toHaveBeenCalledWith("converted:|a|b|");
 
     cleanup.stop();
