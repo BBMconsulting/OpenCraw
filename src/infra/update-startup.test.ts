@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { formatCliCommand } from "../cli/command-format.js";
 import { createSuiteTempRootTracker } from "../test-helpers/temp-dir.js";
 import { captureEnv } from "../test-utils/env.js";
 import type { UpdateCheckResult } from "./update-check.js";
@@ -66,7 +67,12 @@ describe("update-startup", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-01-17T10:00:00Z"));
     tempDir = await suiteRootTracker.make("case");
-    envSnapshot = captureEnv(["OPENCLAW_STATE_DIR", "NODE_ENV", "VITEST"]);
+    envSnapshot = captureEnv([
+      "OPENCLAW_NO_AUTO_UPDATE",
+      "OPENCLAW_STATE_DIR",
+      "NODE_ENV",
+      "VITEST",
+    ]);
     process.env.OPENCLAW_STATE_DIR = tempDir;
 
     process.env.NODE_ENV = "test";
@@ -146,6 +152,19 @@ describe("update-startup", () => {
     return { log, parsed };
   }
 
+  async function expectPathMissing(targetPath: string): Promise<void> {
+    let statError: NodeJS.ErrnoException | undefined;
+    try {
+      await fs.stat(targetPath);
+    } catch (error) {
+      statError = error as NodeJS.ErrnoException;
+    }
+    expect(statError).toBeInstanceOf(Error);
+    expect(statError?.code).toBe("ENOENT");
+    expect(statError?.path).toBe(targetPath);
+    expect(statError?.syscall).toBe("stat");
+  }
+
   function createAutoUpdateSuccessMock() {
     return vi.fn().mockResolvedValue({
       ok: true,
@@ -208,7 +227,7 @@ describe("update-startup", () => {
     const { log, parsed } = await runUpdateCheckAndReadState(channel);
 
     expect(log.info).toHaveBeenCalledWith(
-      expect.stringContaining("update available (latest): v2.0.0"),
+      `update available (latest): v2.0.0 (current v1.0.0). Run: ${formatCliCommand("openclaw update")}`,
     );
     expect(parsed.lastNotifiedVersion).toBe("2.0.0");
     expect(parsed.lastAvailableVersion).toBe("2.0.0");
@@ -290,7 +309,7 @@ describe("update-startup", () => {
     });
 
     expect(log.info).not.toHaveBeenCalled();
-    await expect(fs.stat(path.join(tempDir, "update-check.json"))).rejects.toThrow();
+    await expectPathMissing(path.join(tempDir, "update-check.json"));
   });
 
   it("defers stable auto-update until rollout window is due", async () => {
@@ -366,6 +385,33 @@ describe("update-startup", () => {
     expect(runAutoUpdate).toHaveBeenCalledTimes(1);
   });
 
+  it("honors OPENCLAW_NO_AUTO_UPDATE for configured auto-updates", async () => {
+    mockPackageUpdateStatus("beta", "2.0.0-beta.1");
+    process.env.OPENCLAW_NO_AUTO_UPDATE = "1";
+    const log = { info: vi.fn() };
+    const runAutoUpdate = createAutoUpdateSuccessMock();
+
+    await runGatewayUpdateCheck({
+      cfg: createBetaAutoUpdateConfig(),
+      log,
+      isNixMode: false,
+      allowInTests: true,
+      runAutoUpdate,
+    });
+
+    expect(runAutoUpdate).not.toHaveBeenCalled();
+    const disabledLogCall = log.info.mock.calls.find(
+      ([message]) => message === "auto-update disabled by OPENCLAW_NO_AUTO_UPDATE",
+    );
+    expect(disabledLogCall).toEqual([
+      "auto-update disabled by OPENCLAW_NO_AUTO_UPDATE",
+      {
+        version: "2.0.0-beta.1",
+        tag: "beta",
+      },
+    ]);
+  });
+
   it("uses current runtime + entrypoint for default auto-update command execution", async () => {
     mockPackageInstallStatus();
     mockNpmChannelTag("beta", "2.0.0-beta.1");
@@ -388,26 +434,26 @@ describe("update-startup", () => {
       process.argv = originalArgv;
     }
 
-    expect(runCommandWithTimeout).toHaveBeenCalledWith(
-      [
-        process.execPath,
-        "/opt/openclaw/dist/entry.js",
-        "update",
-        "--yes",
-        "--channel",
-        "beta",
-        "--json",
-      ],
-      expect.objectContaining({
-        timeoutMs: 45 * 60 * 1000,
-        env: expect.objectContaining({
-          OPENCLAW_AUTO_UPDATE: "1",
-        }),
-      }),
-    );
+    expect(runCommandWithTimeout).toHaveBeenCalledTimes(1);
+    const [argv, options] = vi.mocked(runCommandWithTimeout).mock.calls[0] ?? [];
+    expect(argv).toEqual([
+      process.execPath,
+      "/opt/openclaw/dist/entry.js",
+      "update",
+      "--yes",
+      "--channel",
+      "beta",
+      "--json",
+    ]);
+    expect(options).toEqual({
+      timeoutMs: 45 * 60 * 1000,
+      env: {
+        OPENCLAW_AUTO_UPDATE: "1",
+      },
+    });
   });
 
-  it("scheduleGatewayUpdateCheck returns a cleanup function", async () => {
+  it("scheduleGatewayUpdateCheck returns a cleanup function", () => {
     mockPackageUpdateStatus("latest", "2.0.0");
 
     const stop = scheduleGatewayUpdateCheck({
@@ -415,7 +461,6 @@ describe("update-startup", () => {
       log: { info: vi.fn() },
       isNixMode: false,
     });
-    expect(typeof stop).toBe("function");
     stop();
   });
 });

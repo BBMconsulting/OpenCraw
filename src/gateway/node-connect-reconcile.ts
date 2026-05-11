@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type {
   NodePairingPairedNode,
   NodePairingPendingRequest,
@@ -62,6 +62,8 @@ export async function reconcileNodePairingOnConnect(params: {
   const allowlist = resolveNodeCommandAllowlist(params.cfg, {
     platform: params.connectParams.client.platform,
     deviceFamily: params.connectParams.client.deviceFamily,
+    caps: params.connectParams.caps,
+    commands: params.connectParams.commands,
   });
   const declared = normalizeDeclaredNodeCommands({
     declaredCommands: Array.isArray(params.connectParams.commands)

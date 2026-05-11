@@ -2,7 +2,7 @@ import { execFile, execFileSync, spawn } from "node:child_process";
 import {
   normalizeOptionalString,
   normalizeStringifiedOptionalString,
-} from "openclaw/plugin-sdk/text-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 import type { AzAccessToken, AzAccount } from "./shared.js";
 import { COGNITIVE_SERVICES_RESOURCE } from "./shared.js";
 
@@ -37,7 +37,7 @@ function summarizeAzErrorMessage(raw: string): string {
 }
 
 function buildAzCommandError(error: Error, stderr: string, stdout: string): Error {
-  const details = summarizeAzErrorMessage(`${String(stderr ?? "")} ${String(stdout ?? "")}`);
+  const details = summarizeAzErrorMessage(`${stderr ?? ""} ${stdout ?? ""}`);
   return new Error(details ? `${error.message}: ${details}` : error.message);
 }
 
@@ -53,7 +53,7 @@ export function execAz(args: string[]): string {
   );
 }
 
-export async function execAzAsync(args: string[]): Promise<string> {
+async function execAzAsync(args: string[]): Promise<string> {
   return await new Promise<string>((resolve, reject) => {
     execFile(
       "az",
@@ -65,7 +65,7 @@ export async function execAzAsync(args: string[]): Promise<string> {
       },
       (error, stdout, stderr) => {
         if (error) {
-          reject(buildAzCommandError(error, String(stderr ?? ""), String(stdout ?? "")));
+          reject(buildAzCommandError(error, stderr ?? "", stdout ?? ""));
           return;
         }
         resolve(normalizeStringifiedOptionalString(stdout) ?? "");
