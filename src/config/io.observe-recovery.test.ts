@@ -608,6 +608,59 @@ describe("config observe recovery", () => {
     });
   });
 
+  it("uses a configured last-known-good path for promotion and recovery", async () => {
+    await withSuiteHome(async (home) => {
+      const { deps, configPath, auditPath } = makeDeps(home);
+      const lastGoodPath = path.join(home, "state", "openclaw.json.last-good");
+      deps.env.OPENCLAW_CONFIG_LAST_GOOD_PATH = lastGoodPath;
+      const snapshot = await makeSnapshot(configPath, {
+        gateway: { mode: "local", auth: { mode: "token", token: "secret-token" } },
+      });
+
+      await expect(
+        promoteConfigSnapshotToLastKnownGood({ deps, snapshot, logger: deps.logger }),
+      ).resolves.toBe(true);
+      await expect(fsp.readFile(lastGoodPath, "utf-8")).resolves.toBe(snapshot.raw);
+      await expectPathMissing(`${configPath}.last-good`);
+
+      const brokenRaw = "{ gateway: { mode: 123 } }\n";
+      await fsp.writeFile(configPath, brokenRaw, "utf-8");
+      const restored = await recoverConfigFromLastKnownGood({
+        deps,
+        snapshot: {
+          ...snapshot,
+          raw: brokenRaw,
+          parsed: { gateway: { mode: 123 } },
+          valid: false,
+          issues: [{ path: "gateway.mode", message: "Expected string" }],
+        },
+        reason: "test-invalid-config",
+      });
+
+      expect(restored).toBe(true);
+      await expect(fsp.readFile(configPath, "utf-8")).resolves.toBe(snapshot.raw);
+      const observe = await readLastObserveEvent(auditPath);
+      expect(observe?.restoredBackupPath).toBe(lastGoodPath);
+    });
+  });
+
+  it("derives a state-dir last-known-good path for external config paths", async () => {
+    await withSuiteHome(async (home) => {
+      const stateDir = path.join(home, "state");
+      const configPath = path.join(home, "etc", "openclaw.json");
+
+      expect(
+        resolveLastKnownGoodConfigPath(configPath, {
+          env: {
+            OPENCLAW_CONFIG_PATH: configPath,
+            OPENCLAW_STATE_DIR: stateDir,
+          } as NodeJS.ProcessEnv,
+          homedir: () => home,
+        }),
+      ).toBe(path.join(stateDir, "openclaw.json.last-good"));
+    });
+  });
+
   it("does not restore stale last-known-good for plugin schema evolution issues", async () => {
     await withSuiteHome(async (home) => {
       const { deps, configPath, warn } = makeDeps(home);

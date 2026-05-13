@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import path from "node:path";
+import { resolveHomeRelativePath } from "../infra/home-dir.js";
 import { isRecord } from "../utils.js";
 import {
   appendConfigAuditRecord,
@@ -538,7 +539,44 @@ function readConfigFingerprintForPathSync(
   }
 }
 
-export function resolveLastKnownGoodConfigPath(configPath: string): string {
+function resolveConfiguredLastKnownGoodConfigPath(
+  configPath: string,
+  env: NodeJS.ProcessEnv,
+  homedir: () => string,
+): string | null {
+  const explicit = env.OPENCLAW_CONFIG_LAST_GOOD_PATH?.trim();
+  if (explicit) {
+    return resolveHomeRelativePath(explicit, { env, homedir });
+  }
+
+  const stateDirOverride = env.OPENCLAW_STATE_DIR?.trim();
+  const configPathOverride = env.OPENCLAW_CONFIG_PATH?.trim();
+  if (!stateDirOverride || !configPathOverride) {
+    return null;
+  }
+
+  const stateDir = path.resolve(resolveStateDir(env, homedir));
+  const resolvedConfigPath = path.resolve(configPath);
+  const relative = path.relative(stateDir, resolvedConfigPath);
+  const configIsInStateDir =
+    relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+  if (configIsInStateDir) {
+    return null;
+  }
+
+  return path.join(stateDir, `${path.basename(configPath)}.last-good`);
+}
+
+export function resolveLastKnownGoodConfigPath(
+  configPath: string,
+  options: { env?: NodeJS.ProcessEnv; homedir?: () => string } = {},
+): string {
+  const env = options.env ?? process.env;
+  const homedir = options.homedir ?? (() => process.env.HOME ?? "");
+  const configuredPath = resolveConfiguredLastKnownGoodConfigPath(configPath, env, homedir);
+  if (configuredPath) {
+    return configuredPath;
+  }
   return `${configPath}.last-good`;
 }
 
@@ -823,7 +861,11 @@ export async function promoteConfigSnapshotToLastKnownGood(params: {
     stat: stat as ConfigStatMetadataSource,
     observedAt: now,
   });
-  const lastGoodPath = resolveLastKnownGoodConfigPath(snapshot.path);
+  const lastGoodPath = resolveLastKnownGoodConfigPath(snapshot.path, {
+    env: deps.env,
+    homedir: deps.homedir,
+  });
+  await deps.fs.promises.mkdir(path.dirname(lastGoodPath), { recursive: true, mode: 0o700 });
   await deps.fs.promises.writeFile(lastGoodPath, snapshot.raw, {
     encoding: "utf-8",
     mode: 0o600,
@@ -866,7 +908,10 @@ export async function recoverConfigFromLastKnownGood(params: {
   if (!promoted?.hash) {
     return false;
   }
-  const lastGoodPath = resolveLastKnownGoodConfigPath(snapshot.path);
+  const lastGoodPath = resolveLastKnownGoodConfigPath(snapshot.path, {
+    env: deps.env,
+    homedir: deps.homedir,
+  });
   const backupRaw = await deps.fs.promises.readFile(lastGoodPath, "utf-8").catch(() => null);
   if (!backupRaw || hashConfigRaw(backupRaw) !== promoted.hash) {
     return false;
