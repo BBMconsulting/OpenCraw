@@ -1,8 +1,6 @@
 name: OpenClaw Performance
 
 on:
-  schedule:
-    - cron: "11 5 * * *"
   workflow_dispatch:
     inputs:
       target_ref:
