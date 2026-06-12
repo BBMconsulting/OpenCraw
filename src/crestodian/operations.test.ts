@@ -1,3 +1,4 @@
+// Crestodian operation tests cover rescue operation planning and execution.
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -17,8 +18,6 @@ function parseLastJsonLine(raw: string): unknown {
 }
 
 function requireRecord(value: unknown, label: string): Record<string, unknown> {
-  expect(typeof value).toBe("object");
-  expect(value).not.toBeNull();
   if (typeof value !== "object" || value === null) {
     throw new Error(`${label} was not an object`);
   }
@@ -88,8 +87,8 @@ const mockConfig = vi.hoisted(() => {
       state.config = {};
       state.hash = "mock-hash-0";
     },
-    missing(path: string) {
-      state.path = path;
+    missing(pathLocal: string) {
+      state.path = pathLocal;
       state.exists = false;
       state.config = {};
       state.hash = undefined;
@@ -114,6 +113,7 @@ const mockConfig = vi.hoisted(() => {
         return {
           path: state.path,
           previousHash: before.hash ?? null,
+          persistedHash: before.hash ?? null,
           snapshot: before,
           nextConfig: cloneConfig(),
           result: undefined,

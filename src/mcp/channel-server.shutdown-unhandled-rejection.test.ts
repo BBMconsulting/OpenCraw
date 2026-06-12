@@ -1,3 +1,4 @@
+// Channel MCP shutdown tests cover unhandled rejection behavior during shutdown.
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const transportState = vi.hoisted(() => ({
@@ -46,7 +47,8 @@ vi.mock("../config/config.js", () => ({
   getRuntimeConfig: vi.fn(() => ({})),
 }));
 
-vi.mock("../version.js", () => ({
+vi.mock("../version.js", async () => ({
+  ...(await vi.importActual<typeof import("../version.js")>("../version.js")),
   VERSION: "test",
 }));
 
@@ -81,7 +83,9 @@ vi.mock("./channel-tools.js", () => ({
 
 async function waitForTransport(): Promise<{ onclose?: (() => void) | undefined }> {
   await vi.waitFor(() => {
-    expect(transportState.lastTransport).not.toBeNull();
+    if (transportState.lastTransport === null) {
+      throw new Error("MCP stdio transport was not created");
+    }
   });
   if (!transportState.lastTransport) {
     throw new Error("MCP stdio transport was not created");
@@ -116,7 +120,9 @@ describe("serveOpenClawChannelMcp shutdown", () => {
 
     transport.onclose?.();
     await servePromise;
-    await new Promise<void>((resolve) => setImmediate(resolve));
+    await new Promise<void>((resolve) => {
+      setImmediate(resolve);
+    });
 
     expect(unhandledRejections).toStrictEqual([]);
     expect(bridgeState.close).toHaveBeenCalledTimes(1);

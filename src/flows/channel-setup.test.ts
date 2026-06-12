@@ -1,4 +1,6 @@
+// Channel setup tests cover setup flow prompts and config output.
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import {
   makeCatalogEntry,
   makeChannelSetupEntries,
@@ -54,6 +56,7 @@ function makePluginRegistry(overrides: Partial<PluginRegistry> = {}): PluginRegi
     webSearchProviders: [],
     webFetchProviders: [],
     migrationProviders: [],
+    embeddingProviders: [],
     mediaUnderstandingProviders: [],
     imageGenerationProviders: [],
     videoGenerationProviders: [],
@@ -84,6 +87,14 @@ function callArg<T>(mock: { mock: { calls: unknown[][] } }, index = 0, _type?: (
     throw new Error(`Expected mock call ${index}`);
   }
   return call[0] as T;
+}
+
+function mockCall(mock: { mock: { calls: unknown[][] } }, index = 0): unknown[] {
+  const call = mock.mock.calls[index];
+  if (!call) {
+    throw new Error(`Expected mock call ${index}`);
+  }
+  return call;
 }
 
 function expectExternalCatalogInstallCall(index = 0) {
@@ -426,6 +437,83 @@ describe("setupChannels workspace shadow exclusion", () => {
       channels: {
         "custom-chat": { token: "secret" },
       },
+    });
+  });
+
+  it("allowlists ClickClack when it is explicitly selected for setup", async () => {
+    const setupWizard = {
+      channel: "clickclack",
+      getStatus: vi.fn(async () => ({
+        channel: "clickclack",
+        configured: false,
+        statusLines: [],
+      })),
+      configure: vi.fn(async ({ cfg }: { cfg: OpenClawConfig }) => ({
+        cfg: {
+          ...cfg,
+          channels: {
+            ...cfg.channels,
+            clickclack: {
+              ...cfg.channels?.clickclack,
+              token: "secret",
+            },
+          },
+        },
+      })),
+    };
+    const clickClackPlugin = makeSetupPlugin({
+      id: "clickclack",
+      label: "ClickClack",
+      setupWizard,
+    });
+    resolveChannelSetupEntries.mockReturnValue(
+      makeChannelSetupEntries({
+        entries: [
+          {
+            id: "clickclack",
+            meta: makeMeta("clickclack", "ClickClack"),
+          },
+        ],
+      }),
+    );
+    loadChannelSetupPluginRegistrySnapshotForChannel.mockReturnValue(
+      makePluginRegistry({
+        channelSetups: [
+          {
+            pluginId: "clickclack",
+            source: "bundled",
+            enabled: true,
+            plugin: clickClackPlugin,
+          },
+        ],
+      }),
+    );
+    const select = vi.fn().mockResolvedValueOnce("clickclack").mockResolvedValueOnce("__done__");
+
+    const next = await setupChannels(
+      {
+        plugins: {
+          allow: ["memory-core"],
+        },
+      } as never,
+      {} as never,
+      {
+        confirm: vi.fn(async () => true),
+        note: vi.fn(async () => undefined),
+        select,
+      } as never,
+      {
+        deferStatusUntilSelection: true,
+        skipConfirm: true,
+        skipDmPolicyPrompt: true,
+      },
+    );
+
+    expect(next.plugins?.allow).toEqual(["memory-core", "clickclack"]);
+    expect(next.plugins?.entries?.clickclack?.enabled).toBe(true);
+    expect(next.channels?.clickclack).toEqual({
+      enabled: true,
+      token: "secret",
     });
   });
 
@@ -917,11 +1005,12 @@ describe("setupChannels workspace shadow exclusion", () => {
         },
       );
 
-      expect(getTrustedChannelPluginCatalogEntry.mock.calls[0]?.[0]).toBe("external-chat");
-      expect(
-        (getTrustedChannelPluginCatalogEntry.mock.calls[0]?.[1] as { workspaceDir?: string })
-          ?.workspaceDir,
-      ).toBe("/tmp/openclaw-workspace");
+      const catalogLookupCall = mockCall(getTrustedChannelPluginCatalogEntry) as [
+        string,
+        { workspaceDir?: string } | undefined,
+      ];
+      expect(catalogLookupCall[0]).toBe("external-chat");
+      expect(catalogLookupCall[1]?.workspaceDir).toBe("/tmp/openclaw-workspace");
       expect(ensureChannelSetupPluginInstalled).toHaveBeenCalledTimes(1);
       expectExternalCatalogInstallCall();
       expect(note).not.toHaveBeenCalledWith("external-chat plugin not available.", "Channel setup");
