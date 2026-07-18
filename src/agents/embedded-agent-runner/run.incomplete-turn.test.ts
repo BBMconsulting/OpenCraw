@@ -20,16 +20,13 @@ import {
   resetRunOverflowCompactionHarnessMocks,
 } from "./run.overflow-compaction.harness.js";
 import {
-  ACK_EXECUTION_FAST_PATH_INSTRUCTION,
   buildAttemptReplayMetadata,
   DEFAULT_EMPTY_RESPONSE_RETRY_LIMIT,
   DEFAULT_REASONING_ONLY_RETRY_LIMIT,
   EMPTY_RESPONSE_RETRY_INSTRUCTION,
   extractPlanningOnlyPlanDetails,
-  isLikelyExecutionAckPrompt,
   PLANNING_ONLY_RETRY_INSTRUCTION,
   REASONING_ONLY_RETRY_INSTRUCTION,
-  resolveAckExecutionFastPathInstruction,
   resolveEmptyResponseRetryInstruction,
   resolvePlanningOnlyRetryLimit,
   resolvePlanningOnlyRetryInstruction,
@@ -1273,30 +1270,19 @@ describe("runEmbeddedAgent incomplete-turn safety", () => {
     expect(STRICT_AGENTIC_BLOCKED_TEXT).toContain("advanced the task");
   });
 
-  it("detects short execution approval prompts", () => {
-    expect(isLikelyExecutionAckPrompt("ok do it")).toBe(true);
-    expect(isLikelyExecutionAckPrompt("go ahead")).toBe(true);
-    expect(isLikelyExecutionAckPrompt("Can you do it?")).toBe(false);
-  });
-
-  it("detects short execution approvals across requested locales", () => {
-    expect(isLikelyExecutionAckPrompt("نفذها")).toBe(true);
-    expect(isLikelyExecutionAckPrompt("mach es")).toBe(true);
-    expect(isLikelyExecutionAckPrompt("進めて")).toBe(true);
-    expect(isLikelyExecutionAckPrompt("fais-le")).toBe(true);
-    expect(isLikelyExecutionAckPrompt("adelante")).toBe(true);
-    expect(isLikelyExecutionAckPrompt("vai em frente")).toBe(true);
-    expect(isLikelyExecutionAckPrompt("진행해")).toBe(true);
-  });
-
-  it("adds an ack-turn fast-path instruction for GPT action turns", () => {
-    const instruction = resolveAckExecutionFastPathInstruction({
+  it("does not retry plan-only output for a bare acknowledgement", () => {
+    const retryInstruction = resolvePlanningOnlyRetryInstruction({
       provider: "openai",
       modelId: "gpt-5.4",
-      prompt: "go ahead",
+      prompt: "OK",
+      aborted: false,
+      timedOut: false,
+      attempt: makeAttemptResult({
+        assistantTexts: ["I'll inspect the code, make the change, and run the checks."],
+      }),
     });
 
-    expect(instruction).toContain("Do not recap or restate the plan");
+    expect(retryInstruction).toBeNull();
   });
 
   it("applies the planning-only retry guard to prefixed GPT-5 ids", () => {
@@ -1312,26 +1298,6 @@ describe("runEmbeddedAgent incomplete-turn safety", () => {
     });
 
     expect(retryInstruction).toContain("Do not restate the plan");
-  });
-
-  it("applies the ack-turn fast path to broadened GPT-5-family ids", () => {
-    const instruction = resolveAckExecutionFastPathInstruction({
-      provider: "openai",
-      modelId: "gpt-5o-mini",
-      prompt: "go ahead",
-    });
-
-    expect(instruction).toContain("Do not recap or restate the plan");
-  });
-
-  it("applies the ack-turn fast path to Gemini action turns", () => {
-    const instruction = resolveAckExecutionFastPathInstruction({
-      provider: "google",
-      modelId: "gemini-3.1-pro",
-      prompt: "go ahead",
-    });
-
-    expect(instruction).toBe(ACK_EXECUTION_FAST_PATH_INSTRUCTION);
   });
 
   it("extracts structured steps from planning-only narration", () => {
@@ -1773,7 +1739,7 @@ describe("runEmbeddedAgent incomplete-turn safety", () => {
     expect(retryInstruction).toBe(REASONING_ONLY_RETRY_INSTRUCTION);
   });
 
-  it("does not apply planning-only or ack fast paths to Ollama runs", () => {
+  it("does not apply planning-only recovery to Ollama runs", () => {
     const retryInstruction = resolvePlanningOnlyRetryInstruction({
       provider: "ollama",
       modelId: "gemma4:31b",
@@ -1784,14 +1750,8 @@ describe("runEmbeddedAgent incomplete-turn safety", () => {
         assistantTexts: ["I'll inspect the code, make the change, and run the checks."],
       }),
     });
-    const ackInstruction = resolveAckExecutionFastPathInstruction({
-      provider: "ollama",
-      modelId: "gemma4:31b",
-      prompt: "go ahead",
-    });
 
     expect(retryInstruction).toBeNull();
-    expect(ackInstruction).toBeNull();
   });
 
   it("retries signed reasoning-only Ollama turns with a visible-answer continuation instruction", () => {

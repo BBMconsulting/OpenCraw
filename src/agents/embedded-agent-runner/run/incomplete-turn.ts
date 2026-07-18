@@ -171,47 +171,6 @@ const STRICT_AGENTIC_PLANNING_ONLY_RETRY_LIMIT = 2;
 // surfacing the existing incomplete-turn error path.
 export const DEFAULT_REASONING_ONLY_RETRY_LIMIT = 2;
 export const DEFAULT_EMPTY_RESPONSE_RETRY_LIMIT = 1;
-const ACK_EXECUTION_NORMALIZED_SET = new Set([
-  "ok",
-  "okay",
-  "ok do it",
-  "okay do it",
-  "do it",
-  "go ahead",
-  "please do",
-  "sounds good",
-  "sounds good do it",
-  "ship it",
-  "fix it",
-  "make it so",
-  "yes do it",
-  "yep do it",
-  "تمام",
-  "حسنا",
-  "حسنًا",
-  "امض قدما",
-  "نفذها",
-  "mach es",
-  "leg los",
-  "los geht s",
-  "weiter",
-  "やって",
-  "進めて",
-  "そのまま進めて",
-  "allez y",
-  "vas y",
-  "fais le",
-  "continue",
-  "hazlo",
-  "adelante",
-  "sigue",
-  "faz isso",
-  "vai em frente",
-  "pode fazer",
-  "해줘",
-  "진행해",
-  "계속해",
-]);
 const ACTIONABLE_PROMPT_DIRECTIVE_RE =
   /^\s*(?:please\s+)?(?:check|look(?:\s+into|\s+at)?|read|write|edit|update|fix|investigate|debug|run|search|find|implement|add|remove|refactor|explain|summari(?:s|z)e|analy(?:s|z)e|review|tell|show|make|restart|deploy|prepare)\b/i;
 const ACTIONABLE_PROMPT_REQUEST_RE =
@@ -223,8 +182,6 @@ export const REASONING_ONLY_RETRY_INSTRUCTION =
   "The previous assistant turn recorded reasoning but did not produce a user-visible answer. Continue from that partial turn and produce the visible answer now. Do not restate the reasoning or restart from scratch.";
 export const EMPTY_RESPONSE_RETRY_INSTRUCTION =
   "The previous attempt did not produce a user-visible answer. Continue from the current state and produce the visible answer now. Do not restart from scratch.";
-export const ACK_EXECUTION_FAST_PATH_INSTRUCTION =
-  "The latest user message is a short approval to proceed. Do not recap or restate the plan. Start with the first concrete tool action immediately. Keep any user-facing follow-up brief and natural.";
 export const STRICT_AGENTIC_BLOCKED_TEXT =
   "Agent stopped after repeated plan-only turns without taking a concrete action. No concrete tool action or external side effect advanced the task.";
 
@@ -827,52 +784,15 @@ function isIncompleteTurnRecoverySupportedProviderModel(params: {
   return GEMINI_INCOMPLETE_TURN_MODEL_ID_PATTERN.test(stripProviderPrefix(modelId));
 }
 
-function normalizeAckPrompt(text: string): string {
-  const normalized = text
-    .normalize("NFKC")
-    .trim()
-    .replace(/[\p{P}\p{S}]+/gu, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  return normalizeLowercaseStringOrEmpty(normalized);
-}
-
-/** Detects short multilingual approval prompts that should continue execution immediately. */
-export function isLikelyExecutionAckPrompt(text: string): boolean {
-  const trimmed = text.trim();
-  if (!trimmed || trimmed.length > 80 || trimmed.includes("\n") || trimmed.includes("?")) {
-    return false;
-  }
-  return ACK_EXECUTION_NORMALIZED_SET.has(normalizeAckPrompt(trimmed));
-}
-
 function isLikelyActionableUserPrompt(text: string): boolean {
   const trimmed = text.trim();
   if (!trimmed) {
     return false;
   }
-  if (isLikelyExecutionAckPrompt(trimmed) || trimmed.includes("?")) {
+  if (trimmed.includes("?")) {
     return true;
   }
   return ACTIONABLE_PROMPT_DIRECTIVE_RE.test(trimmed) || ACTIONABLE_PROMPT_REQUEST_RE.test(trimmed);
-}
-
-/** Builds the fast-path execution instruction for short approval prompts like "go ahead". */
-export function resolveAckExecutionFastPathInstruction(params: {
-  provider?: string;
-  modelId?: string;
-  prompt: string;
-}): string | null {
-  if (
-    !shouldApplyPlanningOnlyRetryGuard({
-      provider: params.provider,
-      modelId: params.modelId,
-    }) ||
-    !isLikelyExecutionAckPrompt(params.prompt)
-  ) {
-    return null;
-  }
-  return ACK_EXECUTION_FAST_PATH_INSTRUCTION;
 }
 
 function extractPlanningOnlySteps(text: string): string[] {
