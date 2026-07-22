@@ -8868,6 +8868,18 @@ Do not edit it by hand; run `pnpm docs:map:gen`.
   - H2: Design contract
   - H2: Subpath exports
 
+## reference/opencraw-fork-reconciliation.md
+
+- Route: /reference/opencraw-fork-reconciliation
+- Headings:
+  - H1: OpenCraw Fork Reconciliation Record
+  - H2: 2026-07-22 upstream synchronization
+  - H3: Outcome
+  - H3: Integration policy
+  - H3: Reconciliation decisions
+  - H3: Validation
+  - H2: 2026-07-19 baseline assessment
+
 ## reference/path3-live-sqlite-e2e-harness.md
 
 - Route: /reference/path3-live-sqlite-e2e-harness
