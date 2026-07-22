@@ -31,6 +31,7 @@ export function attachGatewayWsHandlers(params: GatewayWsRuntimeParams) {
     getRequiredSharedGatewaySessionGeneration: params.getRequiredSharedGatewaySessionGeneration,
     rateLimiter: params.rateLimiter,
     browserRateLimiter: params.browserRateLimiter,
+    nodeReapprovalCoordinator: params.nodeReapprovalCoordinator,
     preauthHandshakeTimeoutMs: params.preauthHandshakeTimeoutMs,
     isStartupPending: params.isStartupPending,
     gatewayMethods: params.gatewayMethods,
@@ -41,6 +42,9 @@ export function attachGatewayWsHandlers(params: GatewayWsRuntimeParams) {
     logWsControl: params.logWsControl,
     extraHandlers: params.extraHandlers,
     getMethodRegistry: params.getMethodRegistry,
+    ...(params.workerConnectionService
+      ? { workerConnectionService: params.workerConnectionService }
+      : {}),
     broadcast: params.broadcast,
     buildRequestContext: () => params.context,
   });

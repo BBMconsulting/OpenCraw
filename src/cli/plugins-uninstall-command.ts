@@ -5,20 +5,24 @@ import { theme } from "../../packages/terminal-core/src/theme.js";
 import { assertConfigWriteAllowedInCurrentMode, readConfigFileSnapshot } from "../config/config.js";
 import { resolveStateDir } from "../config/paths.js";
 import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { parseClawHubPluginSpec } from "../infra/clawhub.js";
 import {
   tracePluginLifecyclePhase,
   tracePluginLifecyclePhaseAsync,
 } from "../plugins/plugin-lifecycle-trace.js";
 import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
+import { withClawPackageLifecycleLease } from "../state/claw-package-lifecycle-lease.js";
 import { shortenHomePath } from "../utils.js";
 
-export type PluginUninstallOptions = {
+type PluginUninstallOptions = {
   keepFiles?: boolean;
   /** @deprecated Use keepFiles. */
   keepConfig?: boolean;
   force?: boolean;
   dryRun?: boolean;
   invalidateRuntimeCache?: boolean;
+  /** True when a Claw lifecycle caller already owns the package lease. */
+  clawManaged?: boolean;
 };
 
 function isPromptInputClosedError(
@@ -52,9 +56,9 @@ export async function runPluginUninstallCommand(
     UNINSTALL_ACTION_LABELS,
   } = await import("../plugins/uninstall.js");
   const { commitPluginInstallRecordsWithConfig } =
-    await import("./plugins-install-record-commit.js");
+    await import("../plugins/install-record-commit.js");
   const { refreshPluginRegistryAfterConfigMutation } =
-    await import("./plugins-registry-refresh.js");
+    await import("../plugins/registry-refresh.js");
   const { resolvePluginUninstallId } = await import("./plugins-uninstall-selection.js");
   const { PromptInputClosedError, promptYesNo } = await import("./prompt.js");
   const snapshot = await tracePluginLifecyclePhaseAsync(
@@ -105,7 +109,7 @@ export async function runPluginUninstallCommand(
     runtime.exit(1);
     return;
   }
-  const hasInstall = pluginId in (cfg.plugins?.installs ?? {});
+  const hasInstall = Object.hasOwn(cfg.plugins?.installs ?? {}, pluginId);
 
   const preview: string[] = [];
   if (plan.actions.entry) {
@@ -147,6 +151,15 @@ export async function runPluginUninstallCommand(
   );
   runtime.log(`Will remove: ${preview.length > 0 ? preview.join(", ") : "(nothing)"}`);
 
+  const { collectClawPluginUninstallWarnings } =
+    await import("../plugins/uninstall-claw-references.js");
+  for (const warning of collectClawPluginUninstallWarnings({
+    pluginId,
+    installRecord: cfg.plugins?.installs?.[pluginId],
+  })) {
+    runtime.log(theme.warn(warning));
+  }
+
   const nextConfig = withoutPluginInstallRecords(plan.config);
 
   if (opts.dryRun) {
@@ -174,43 +187,60 @@ export async function runPluginUninstallCommand(
     }
   }
 
-  const nextInstallRecords = removePluginInstallRecordFromRecords(installRecords, pluginId);
-  await tracePluginLifecyclePhaseAsync(
-    "config mutation",
-    () =>
-      commitPluginInstallRecordsWithConfig({
-        previousInstallRecords: installRecords,
-        nextInstallRecords,
-        nextConfig,
-        ...(snapshot.hash !== undefined ? { baseHash: snapshot.hash } : {}),
-        writeOptions: {
-          afterWrite: { mode: "restart", reason: "plugin source changed" },
-        },
-      }),
-    { command: "uninstall" },
-  );
-  const directoryResult = await applyPluginUninstallDirectoryRemoval(plan.directoryRemoval);
-  for (const warning of directoryResult.warnings) {
-    runtime.log(theme.warn(warning));
+  const uninstall = async () => {
+    const nextInstallRecords = removePluginInstallRecordFromRecords(installRecords, pluginId);
+    await tracePluginLifecyclePhaseAsync(
+      "config mutation",
+      () =>
+        commitPluginInstallRecordsWithConfig({
+          previousInstallRecords: installRecords,
+          nextInstallRecords,
+          nextConfig,
+          ...(snapshot.hash !== undefined ? { baseHash: snapshot.hash } : {}),
+          writeOptions: {
+            allowConfigSizeDrop: true,
+            auditOrigin: "plugin-install",
+            afterWrite: { mode: "restart", reason: "plugin source changed" },
+          },
+        }),
+      { command: "uninstall" },
+    );
+    const directoryResult = await applyPluginUninstallDirectoryRemoval(plan.directoryRemoval);
+    for (const warning of directoryResult.warnings) {
+      runtime.log(theme.warn(warning));
+    }
+    await refreshPluginRegistryAfterConfigMutation({
+      config: nextConfig,
+      reason: "source-changed",
+      installRecords: nextInstallRecords,
+      invalidateRuntimeCache: opts.invalidateRuntimeCache,
+      traceCommand: "uninstall",
+      logger: {
+        warn: (message) => runtime.log(theme.warn(message)),
+      },
+    });
+
+    const removed = formatUninstallActionLabels({
+      ...plan.actions,
+      directory: directoryResult.directoryRemoved,
+    });
+
+    runtime.log(
+      `Uninstalled plugin "${pluginId}". Removed: ${removed.length > 0 ? removed.join(", ") : "nothing"}.`,
+    );
+    runtime.log("Restart the gateway to apply changes.");
+  };
+  const installRecord = cfg.plugins?.installs?.[pluginId];
+  const clawhubPackage =
+    installRecord?.source === "clawhub"
+      ? (installRecord.clawhubPackage ?? parseClawHubPluginSpec(installRecord.spec ?? "")?.name)
+      : undefined;
+  if (opts.clawManaged || !clawhubPackage) {
+    return await uninstall();
   }
-  await refreshPluginRegistryAfterConfigMutation({
-    config: nextConfig,
-    reason: "source-changed",
-    installRecords: nextInstallRecords,
-    invalidateRuntimeCache: opts.invalidateRuntimeCache,
-    traceCommand: "uninstall",
-    logger: {
-      warn: (message) => runtime.log(theme.warn(message)),
-    },
-  });
-
-  const removed = formatUninstallActionLabels({
-    ...plan.actions,
-    directory: directoryResult.directoryRemoved,
-  });
-
-  runtime.log(
-    `Uninstalled plugin "${pluginId}". Removed: ${removed.length > 0 ? removed.join(", ") : "nothing"}.`,
+  await withClawPackageLifecycleLease(
+    { kind: "plugin", source: "clawhub", ref: clawhubPackage },
+    uninstall,
+    { required: true },
   );
-  runtime.log("Restart the gateway to apply changes.");
 }

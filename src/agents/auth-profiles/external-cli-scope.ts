@@ -61,6 +61,7 @@ function addExternalCliRuntimeScope(out: Set<string>, value: string | undefined)
     normalized === "codex" ||
     normalized === "codex-cli" ||
     normalized === "codex-app-server" ||
+    normalized === "google-gemini-cli" ||
     normalized === "openai" ||
     normalized === "minimax" ||
     normalized === "minimax-cli" ||
@@ -109,9 +110,9 @@ export function resolveExternalCliAuthScopeFromConfig(
   const defaults = cfg.agents?.defaults;
   addProviderScopeFromModelConfig(providerIds, defaults?.model);
   addProviderScopeFromModelConfig(providerIds, defaults?.imageModel);
-  addProviderScopeFromModelConfig(providerIds, defaults?.imageGenerationModel);
-  addProviderScopeFromModelConfig(providerIds, defaults?.videoGenerationModel);
-  addProviderScopeFromModelConfig(providerIds, defaults?.musicGenerationModel);
+  addProviderScopeFromModelConfig(providerIds, defaults?.mediaModels?.image);
+  addProviderScopeFromModelConfig(providerIds, defaults?.mediaModels?.video);
+  addProviderScopeFromModelConfig(providerIds, defaults?.mediaModels?.music);
   addProviderScopeFromModelConfig(providerIds, defaults?.voiceModel);
   addProviderScopeFromModelConfig(providerIds, defaults?.pdfModel);
   addExternalCliRuntimeScopeFromModelMap(providerIds, defaults?.models);
@@ -122,8 +123,7 @@ export function resolveExternalCliAuthScopeFromConfig(
     }
   }
 
-  const agents = Array.isArray(cfg.agents?.list) ? cfg.agents.list : [];
-  for (const agent of agents) {
+  for (const agent of Object.values(cfg.agents?.entries ?? {})) {
     addProviderScopeFromModelConfig(providerIds, agent.model);
     addProviderScopeFromModelConfig(providerIds, agent.subagents?.model);
     addExternalCliRuntimeScopeFromModelMap(providerIds, agent.models);

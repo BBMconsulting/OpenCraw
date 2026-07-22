@@ -6,7 +6,9 @@ import { runHeartbeatOnce, type HeartbeatDeps } from "./heartbeat-runner.js";
 import { installHeartbeatRunnerTestRuntime } from "./heartbeat-runner.test-harness.js";
 import {
   type HeartbeatReplySpy,
+  readSessionStoreForTest,
   seedMainSessionStore,
+  seedSessionStore,
   withTempHeartbeatSandbox,
   withTempTelegramHeartbeatSandbox,
 } from "./heartbeat-runner.test-utils.js";
@@ -107,6 +109,8 @@ describe("runHeartbeatOnce ack handling", () => {
           cfg: params.cfg,
           accountId: undefined,
           audioAsVoice: undefined,
+          deliveryPartIndex: 0,
+          deliveryQueueId: undefined,
           forceDocument: undefined,
           formatting: undefined,
           gatewayClientScopes: undefined,
@@ -116,6 +120,8 @@ describe("runHeartbeatOnce ack handling", () => {
           mediaAccess: {},
           mediaLocalRoots: undefined,
           mediaReadFile: undefined,
+          onDeliveryResult: expect.any(Function),
+          onPlatformSendDispatch: expect.any(Function),
           replyToIdSource: undefined,
           replyToMode: undefined,
           silent: undefined,
@@ -129,7 +135,7 @@ describe("runHeartbeatOnce ack handling", () => {
     storePath: string;
     replySpy: HeartbeatReplySpy;
     replyText: string;
-    messages?: Record<string, unknown>;
+    responsePrefix?: string;
     telegramOverrides?: Record<string, unknown>;
   }) {
     const cfg = createHeartbeatConfig({
@@ -140,11 +146,11 @@ describe("runHeartbeatOnce ack handling", () => {
         telegram: {
           token: "test-token",
           allowFrom: ["*"],
-          heartbeat: { showOk: false },
+          heartbeatVisibility: { showOk: false },
+          responsePrefix: params.responsePrefix,
           ...params.telegramOverrides,
         },
       },
-      ...(params.messages ? { messages: params.messages } : {}),
     });
 
     await seedMainSessionStore(params.storePath, cfg, {
@@ -182,7 +188,7 @@ describe("runHeartbeatOnce ack handling", () => {
       channels: {
         whatsapp: {
           allowFrom: ["*"],
-          ...(params.visibility ? { heartbeat: params.visibility } : {}),
+          ...(params.visibility ? { heartbeatVisibility: params.visibility } : {}),
         },
       },
     });
@@ -203,12 +209,12 @@ describe("runHeartbeatOnce ack handling", () => {
     return cfg;
   }
 
-  it("respects ackMaxChars for heartbeat acks", async () => {
+  it("uses the fixed ack budget to suppress short heartbeat acknowledgements", async () => {
     await withTempHeartbeatSandbox(async ({ tmpDir, storePath, replySpy }) => {
       const cfg = createWhatsAppHeartbeatConfig({
         tmpDir,
         storePath,
-        heartbeat: { ackMaxChars: 0 },
+        heartbeat: {},
       });
 
       await seedMainSessionStore(storePath, cfg, {
@@ -228,7 +234,7 @@ describe("runHeartbeatOnce ack handling", () => {
         },
       });
 
-      expect(sendWhatsApp).toHaveBeenCalled();
+      expect(sendWhatsApp).not.toHaveBeenCalled();
     });
   });
 
@@ -265,6 +271,108 @@ describe("runHeartbeatOnce ack handling", () => {
     });
   });
 
+  it("records completed tasks when HEARTBEAT_OK delivery fails", async () => {
+    await withTempTelegramHeartbeatSandbox(async ({ tmpDir, storePath, replySpy }) => {
+      const nowMs = Date.parse("2026-07-06T12:00:00.000Z");
+      await fs.writeFile(
+        `${tmpDir}/HEARTBEAT.md`,
+        `tasks:
+  - name: check-deployment
+    interval: 5m
+    prompt: Check deployment status
+`,
+        "utf-8",
+      );
+      const cfg = createHeartbeatConfig({
+        tmpDir,
+        storePath,
+        heartbeat: { every: "5m", target: "telegram" },
+        channels: {
+          telegram: {
+            token: "test-token",
+            allowFrom: ["*"],
+            heartbeatVisibility: { showOk: true },
+          },
+        },
+      });
+      const sessionKey = await seedMainSessionStore(storePath, cfg, {
+        lastChannel: "telegram",
+        lastProvider: "telegram",
+        lastTo: TELEGRAM_GROUP,
+      });
+      replySpy.mockResolvedValue({ text: "HEARTBEAT_OK" });
+      const sendTelegram = vi.fn().mockRejectedValue(new Error("delivery unavailable"));
+
+      const result = await runHeartbeatOnce({
+        cfg,
+        deps: {
+          ...makeTelegramDeps({ sendTelegram, nowMs: () => nowMs }),
+          getReplyFromConfig: replySpy,
+        },
+      });
+
+      const sessionStore = readSessionStoreForTest<{
+        heartbeatTaskState?: Record<string, number>;
+      }>(storePath);
+      expect(result.status).toBe("ran");
+      expect(sendTelegram).toHaveBeenCalledTimes(1);
+      expect(sessionStore[sessionKey]?.heartbeatTaskState).toEqual({
+        "check-deployment": nowMs,
+      });
+    });
+  });
+
+  it("records completed tasks when HEARTBEAT_OK readiness checks fail", async () => {
+    await withTempHeartbeatSandbox(async ({ tmpDir, storePath, replySpy }) => {
+      const nowMs = Date.parse("2026-07-06T12:00:00.000Z");
+      await fs.writeFile(
+        `${tmpDir}/HEARTBEAT.md`,
+        `tasks:
+  - name: check-deployment
+    interval: 5m
+    prompt: Check deployment status
+`,
+        "utf-8",
+      );
+      const cfg = createWhatsAppHeartbeatConfig({
+        tmpDir,
+        storePath,
+        heartbeat: {},
+        visibility: { showOk: true },
+      });
+      const sessionKey = await seedMainSessionStore(storePath, cfg, {
+        lastChannel: "whatsapp",
+        lastProvider: "whatsapp",
+        lastTo: WHATSAPP_GROUP,
+      });
+      replySpy.mockResolvedValue({ text: "HEARTBEAT_OK" });
+      const sendWhatsApp = createMessageSendSpy();
+
+      const result = await runHeartbeatOnce({
+        cfg,
+        deps: {
+          ...makeWhatsAppDeps({
+            sendWhatsApp,
+            nowMs: () => nowMs,
+            webAuthExists: async () => {
+              throw new Error("readiness unavailable");
+            },
+          }),
+          getReplyFromConfig: replySpy,
+        },
+      });
+
+      const sessionStore = readSessionStoreForTest<{
+        heartbeatTaskState?: Record<string, number>;
+      }>(storePath);
+      expect(result.status).toBe("ran");
+      expect(sendWhatsApp).not.toHaveBeenCalled();
+      expect(sessionStore[sessionKey]?.heartbeatTaskState).toEqual({
+        "check-deployment": nowMs,
+      });
+    });
+  });
+
   it.each([
     {
       title: "does not deliver HEARTBEAT_OK to telegram when showOk is false",
@@ -274,24 +382,24 @@ describe("runHeartbeatOnce ack handling", () => {
     {
       title: "strips responsePrefix before HEARTBEAT_OK detection and suppresses short ack text",
       replyText: "[openclaw] HEARTBEAT_OK all good",
-      messages: { responsePrefix: "[openclaw]" },
+      responsePrefix: "[openclaw]",
       expectedCalls: 0,
     },
     {
       title: "does not strip alphanumeric responsePrefix from larger words",
       replyText: "History check complete",
-      messages: { responsePrefix: "Hi" },
+      responsePrefix: "Hi",
       expectedCalls: 1,
       expectedText: "History check complete",
     },
-  ])("$title", async ({ replyText, messages, expectedCalls, expectedText }) => {
+  ])("$title", async ({ replyText, responsePrefix, expectedCalls, expectedText }) => {
     await withTempTelegramHeartbeatSandbox(async ({ tmpDir, storePath, replySpy }) => {
       const { sendTelegram, cfg } = await runTelegramHeartbeatWithDefaults({
         tmpDir,
         storePath,
         replySpy,
         replyText,
-        messages,
+        responsePrefix,
       });
 
       expect(sendTelegram).toHaveBeenCalledTimes(expectedCalls);
@@ -374,15 +482,14 @@ describe("runHeartbeatOnce ack handling", () => {
       });
 
       replySpy.mockImplementationOnce(async () => {
-        const raw = await fs.readFile(storePath, "utf-8");
-        const parsed = JSON.parse(raw) as Record<string, { updatedAt?: number } | undefined>;
-        if (parsed[sessionKey]) {
-          parsed[sessionKey] = {
-            ...parsed[sessionKey],
+        const parsed = readSessionStoreForTest(storePath);
+        const current = parsed[sessionKey];
+        if (current) {
+          await seedSessionStore(storePath, sessionKey, {
+            ...current,
             updatedAt: bumpedUpdatedAt,
-          };
+          });
         }
-        await fs.writeFile(storePath, JSON.stringify(parsed, null, 2));
         return { text: "" };
       });
 
@@ -394,10 +501,7 @@ describe("runHeartbeatOnce ack handling", () => {
         },
       });
 
-      const finalStore = JSON.parse(await fs.readFile(storePath, "utf-8")) as Record<
-        string,
-        { updatedAt?: number } | undefined
-      >;
+      const finalStore = readSessionStoreForTest<{ updatedAt?: number }>(storePath);
       expect(finalStore[sessionKey]?.updatedAt).toBe(bumpedUpdatedAt);
     });
   });

@@ -47,6 +47,7 @@ const STATIC_MODEL_OVERRIDES = new Map<string, Partial<ModelDefinitionConfig>>([
       name: "GPT-5.5",
       reasoning: true,
       contextWindow: 400_000,
+      contextTokens: 272_000,
       maxTokens: 128_000,
     },
   ],
@@ -54,6 +55,10 @@ const STATIC_MODEL_OVERRIDES = new Map<string, Partial<ModelDefinitionConfig>>([
 
 function isCopilotGeminiModelId(modelId: string): boolean {
   return /(?:^|[-_.])gemini(?:$|[-_.])/.test(modelId);
+}
+
+function isCopilotClaude45ModelId(modelId: string): boolean {
+  return /^claude-(?:haiku|opus|sonnet)-4[.-]5(?:$|[-.])/.test(modelId);
 }
 
 export function resolveCopilotTransportApi(modelId: string): CopilotRuntimeApi {
@@ -71,7 +76,15 @@ export function resolveCopilotModelCompat(
   modelId: string,
 ): ModelDefinitionConfig["compat"] | undefined {
   const normalized = normalizeOptionalLowercaseString(modelId) ?? "";
-  return isCopilotGeminiModelId(normalized) ? { ...COPILOT_CHAT_COMPLETIONS_COMPAT } : undefined;
+  if (isCopilotGeminiModelId(normalized)) {
+    return { ...COPILOT_CHAT_COMPLETIONS_COMPAT };
+  }
+  // Copilot's Claude 4.5 endpoints reject Anthropic's eager tool extension,
+  // while current Claude 4.6+ endpoints accept it.
+  if (isCopilotClaude45ModelId(normalized)) {
+    return { supportsEagerToolInputStreaming: false };
+  }
+  return undefined;
 }
 
 function compatSupportsEffort(

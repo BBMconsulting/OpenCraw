@@ -1,4 +1,5 @@
 // Vercel Ai Gateway plugin module implements models behavior.
+import { withTrustedEnvProxyGuardedFetchMode } from "openclaw/plugin-sdk/fetch-runtime";
 import { parseStrictFiniteNumber } from "openclaw/plugin-sdk/number-runtime";
 import {
   getCachedLiveProviderModelRows,
@@ -6,12 +7,12 @@ import {
 } from "openclaw/plugin-sdk/provider-catalog-live-runtime";
 import type { ModelDefinitionConfig } from "openclaw/plugin-sdk/provider-model-shared";
 import { createSubsystemLogger } from "openclaw/plugin-sdk/runtime-env";
+import { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";
 import { asPositiveSafeInteger } from "openclaw/plugin-sdk/string-coerce-runtime";
 
 export const VERCEL_AI_GATEWAY_PROVIDER_ID = "vercel-ai-gateway";
 export const VERCEL_AI_GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh";
 export const VERCEL_AI_GATEWAY_DEFAULT_MODEL_ID = "anthropic/claude-opus-4.6";
-export const VERCEL_AI_GATEWAY_DEFAULT_MODEL_REF = `${VERCEL_AI_GATEWAY_PROVIDER_ID}/${VERCEL_AI_GATEWAY_DEFAULT_MODEL_ID}`;
 export const VERCEL_AI_GATEWAY_DEFAULT_CONTEXT_WINDOW = 200_000;
 export const VERCEL_AI_GATEWAY_DEFAULT_MAX_TOKENS = 128_000;
 export const VERCEL_AI_GATEWAY_DEFAULT_COST = {
@@ -143,6 +144,21 @@ function getStaticFallbackModel(id: string): ModelDefinitionConfig | undefined {
   return fallback ? buildStaticModelDefinition(fallback) : undefined;
 }
 
+/** Builds runtime metadata for models returned by the live gateway catalog. */
+export function resolveVercelAiGatewayDynamicModel(modelId: string): ModelDefinitionConfig {
+  return (
+    getStaticFallbackModel(modelId) ?? {
+      id: modelId,
+      name: modelId,
+      reasoning: false,
+      input: ["text"],
+      contextWindow: VERCEL_AI_GATEWAY_DEFAULT_CONTEXT_WINDOW,
+      maxTokens: VERCEL_AI_GATEWAY_DEFAULT_MAX_TOKENS,
+      cost: VERCEL_AI_GATEWAY_DEFAULT_COST,
+    }
+  );
+}
+
 export function getStaticVercelAiGatewayModelCatalog(): ModelDefinitionConfig[] {
   return STATIC_VERCEL_AI_GATEWAY_MODEL_CATALOG.map(buildStaticModelDefinition);
 }
@@ -209,6 +225,7 @@ export async function discoverVercelAiGatewayModels(): Promise<ModelDefinitionCo
       timeoutMs: VERCEL_AI_GATEWAY_DISCOVERY_TIMEOUT_MS,
       ttlMs: VERCEL_AI_GATEWAY_DISCOVERY_CACHE_TTL_MS,
       auditContext: "vercel-ai-gateway.models",
+      fetchGuard: (params) => fetchWithSsrFGuard(withTrustedEnvProxyGuardedFetchMode(params)),
     });
     const discovered = data
       .map(asVercelGatewayModelShape)

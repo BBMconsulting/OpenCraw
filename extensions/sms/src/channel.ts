@@ -5,12 +5,18 @@ import {
   createHybridChannelConfigAdapter,
   createScopedDmSecurityResolver,
 } from "openclaw/plugin-sdk/channel-config-helpers";
-import { createChatChannelPlugin, type ChannelPlugin } from "openclaw/plugin-sdk/channel-core";
+import {
+  buildChannelOutboundSessionRoute,
+  createChatChannelPlugin,
+  type ChannelOutboundSessionRouteParams,
+  type ChannelPlugin,
+} from "openclaw/plugin-sdk/channel-core";
 import {
   createMessageReceiptFromOutboundResults,
   defineChannelMessageAdapter,
 } from "openclaw/plugin-sdk/channel-outbound";
 import { createConditionalWarningCollector } from "openclaw/plugin-sdk/channel-policy";
+import type { ChannelSetupInput } from "openclaw/plugin-sdk/channel-setup";
 import { createEmptyChannelDirectoryAdapter } from "openclaw/plugin-sdk/directory-runtime";
 import { normalizeStringEntries } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { chunkTextForOutbound } from "openclaw/plugin-sdk/text-chunking";
@@ -35,6 +41,16 @@ import { formatSmsProbeLines, probeSmsAccount, type SmsProbe } from "./status.js
 import type { ResolvedSmsAccount } from "./types.js";
 
 const CHANNEL_ID = "sms";
+
+type SmsSetupInput = ChannelSetupInput & {
+  accountSid?: string;
+  authToken?: string;
+  fromNumber?: string;
+  messagingServiceSid?: string;
+  webhookPath?: string;
+  publicWebhookUrl?: string;
+  dmPolicy?: string;
+};
 
 const smsConfigAdapter = createHybridChannelConfigAdapter<ResolvedSmsAccount>({
   sectionKey: CHANNEL_ID,
@@ -80,7 +96,7 @@ const collectSmsSecurityWarnings = createConditionalWarningCollector<ResolvedSms
     '- SMS: dmPolicy="open" allows any phone number to message the bot.',
 );
 
-function smsSetupPatch(input: Record<string, unknown>): Record<string, unknown> {
+function smsSetupPatch(input: SmsSetupInput): Record<string, unknown> {
   const patch: Record<string, unknown> = {};
   for (const key of [
     "accountSid",
@@ -92,7 +108,7 @@ function smsSetupPatch(input: Record<string, unknown>): Record<string, unknown> 
     "publicWebhookUrl",
     "dmPolicy",
     "allowFrom",
-  ]) {
+  ] as const) {
     if (input[key] !== undefined) {
       patch[key] = input[key];
     }
@@ -103,7 +119,7 @@ function smsSetupPatch(input: Record<string, unknown>): Record<string, unknown> 
 function applySmsAccountConfig(params: {
   cfg: OpenClawConfig;
   accountId: string;
-  input: Record<string, unknown>;
+  input: SmsSetupInput;
 }): OpenClawConfig {
   const patch = smsSetupPatch(params.input);
   const channels = { ...params.cfg.channels };
@@ -151,7 +167,7 @@ function createSmsReceipt(params: {
   };
 }
 
-export function resolveSmsTextChunkLimit(params: {
+function resolveSmsTextChunkLimit(params: {
   cfg: OpenClawConfig;
   accountId?: string | null;
   fallbackLimit?: number;
@@ -190,6 +206,24 @@ const smsMessageAdapter = defineChannelMessageAdapter({
   },
 });
 
+function resolveSmsOutboundSessionRoute(params: ChannelOutboundSessionRouteParams) {
+  const to = normalizeSmsPhoneNumber(params.resolvedTarget?.to ?? params.target);
+  if (!looksLikeSmsPhoneNumber(to)) {
+    return null;
+  }
+  return buildChannelOutboundSessionRoute({
+    cfg: params.cfg,
+    agentId: params.agentId,
+    channel: CHANNEL_ID,
+    accountId: params.accountId,
+    recipientSessionExact: true,
+    peer: { kind: "direct", id: to },
+    chatType: "direct",
+    from: `sms:${to}`,
+    to: `sms:${to}`,
+  });
+}
+
 export const smsPlugin: ChannelPlugin<ResolvedSmsAccount, SmsProbe> = createChatChannelPlugin({
   base: {
     id: CHANNEL_ID,
@@ -217,7 +251,8 @@ export const smsPlugin: ChannelPlugin<ResolvedSmsAccount, SmsProbe> = createChat
     reload: { configPrefixes: [`channels.${CHANNEL_ID}`] },
     configSchema: SmsChannelConfigSchema,
     setup: {
-      applyAccountConfig: applySmsAccountConfig,
+      applyAccountConfig: ({ cfg, accountId, input }) =>
+        applySmsAccountConfig({ cfg, accountId, input: input as SmsSetupInput }),
     },
     config: {
       ...smsConfigAdapter,
@@ -235,6 +270,7 @@ export const smsPlugin: ChannelPlugin<ResolvedSmsAccount, SmsProbe> = createChat
     messaging: {
       targetPrefixes: ["twilio-sms"],
       normalizeTarget: (target) => normalizeSmsPhoneNumber(target),
+      resolveOutboundSessionRoute: (params) => resolveSmsOutboundSessionRoute(params),
       targetResolver: {
         looksLikeId: looksLikeSmsPhoneNumber,
         hint: "<+15551234567>",

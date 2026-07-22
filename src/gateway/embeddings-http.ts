@@ -8,6 +8,7 @@ import {
 } from "@openclaw/normalization-core/string-coerce";
 import { resolveAgentDir } from "../agents/agent-scope.js";
 import { resolveMemorySearchConfig } from "../agents/memory-search.js";
+import { createConfiguredProviderLocalServiceAcquirer } from "../agents/provider-local-service.js";
 import { getRuntimeConfig } from "../config/io.js";
 import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { formatErrorMessage } from "../infra/errors.js";
@@ -24,11 +25,13 @@ import type {
 } from "../plugins/memory-embedding-providers.js";
 import type { AuthRateLimiter } from "./auth-rate-limit.js";
 import type { ResolvedGatewayAuth } from "./auth.js";
-import { sendJson } from "./http-common.js";
+import { sendJson, sendMissingScopeForbidden } from "./http-common.js";
 import { handleGatewayPostJsonEndpoint } from "./http-endpoint-helpers.js";
 import {
   OPENCLAW_MODEL_ID,
+  authorizeOpenAiCompatibleHttpModelOverride,
   getHeader,
+  isUnknownGatewayAgentError,
   resolveAgentIdForRequest,
   resolveAgentIdFromModel,
   resolveOpenAiCompatibleHttpOperatorScopes,
@@ -123,23 +126,27 @@ async function createConfiguredEmbeddingProvider(params: {
   model: string;
   memorySearch?: MemorySearchEmbeddingConfig;
 }): Promise<MemoryEmbeddingProvider> {
+  const acquireLocalService = createConfiguredProviderLocalServiceAcquirer(() => params.cfg);
   const providerId =
     params.provider === "auto" ? DEFAULT_MEMORY_EMBEDDING_PROVIDER : params.provider;
   // Prefer memory-specific adapters because they understand query/document
   // input types; generic embedding adapters are adapted only as a fallback.
   const createWithAdapter = async (adapter: MemoryEmbeddingProviderAdapter) => {
-    const result = await adapter.create({
+    const createOptions = {
       config: params.cfg,
       agentDir: params.agentDir,
+      provider: providerId,
       model: params.model || adapter.defaultModel || "",
       local: params.memorySearch?.local,
       remote: resolveEmbeddingProviderRemoteConfig(params.memorySearch?.remote),
       outputDimensionality: params.memorySearch?.outputDimensionality,
-    });
+      acquireLocalService,
+    };
+    const result = await adapter.create(createOptions);
     return result.provider;
   };
   const createWithGenericAdapter = async (adapter: GenericEmbeddingProviderAdapter) => {
-    const result = await adapter.create({
+    const createOptions = {
       config: params.cfg,
       agentDir: params.agentDir,
       provider: providerId,
@@ -150,7 +157,9 @@ async function createConfiguredEmbeddingProvider(params: {
       inputType: params.memorySearch?.inputType,
       queryInputType: params.memorySearch?.queryInputType,
       documentInputType: params.memorySearch?.documentInputType,
-    });
+      acquireLocalService,
+    };
+    const result = await adapter.create(createOptions);
     return result.provider ? adaptGenericEmbeddingProvider(result.provider) : null;
   };
 
@@ -252,6 +261,11 @@ export async function handleOpenAiEmbeddingsHttpRequest(
   if (!handled) {
     return true;
   }
+  const modelOverrideAuth = authorizeOpenAiCompatibleHttpModelOverride(req, handled.requestAuth);
+  if (!modelOverrideAuth.allowed) {
+    sendMissingScopeForbidden(res, modelOverrideAuth.missingScope);
+    return true;
+  }
 
   const payload = coerceRequest(handled.body);
   const requestModel = normalizeOptionalString(payload.model) ?? "";
@@ -291,7 +305,18 @@ export async function handleOpenAiEmbeddingsHttpRequest(
     return true;
   }
 
-  const agentId = resolveAgentIdForRequest({ req, model: requestModel });
+  let agentId: string;
+  try {
+    agentId = resolveAgentIdForRequest({ req, model: requestModel });
+  } catch (err) {
+    if (isUnknownGatewayAgentError(err)) {
+      sendJson(res, 400, {
+        error: { message: err.message, type: "invalid_request_error" },
+      });
+      return true;
+    }
+    throw err;
+  }
   const agentDir = resolveAgentDir(cfg, agentId);
   const memorySearch = resolveMemorySearchConfig(cfg, agentId);
   const configuredProvider = memorySearch?.provider ?? "openai";

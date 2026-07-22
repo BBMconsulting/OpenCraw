@@ -1,7 +1,6 @@
 // Observes and recovers config files that appear missing, corrupt, or clobbered.
 import crypto from "node:crypto";
 import path from "node:path";
-import { resolveHomeRelativePath } from "../infra/home-dir.js";
 import { isRecord } from "../utils.js";
 import {
   appendConfigAuditRecord,
@@ -13,6 +12,14 @@ import {
   persistBoundedClobberedConfigSnapshot,
   persistBoundedClobberedConfigSnapshotSync,
 } from "./io.clobber-snapshot.js";
+import {
+  readConfigHealthStateFromStore,
+  writeConfigHealthStateToStore,
+  type ConfigHealthEntry,
+  type ConfigHealthFingerprint,
+  type ConfigHealthState,
+} from "./io.health-state.js";
+import { resolveConfigObserveSuspiciousReasons } from "./io.observe-suspicious.js";
 import { formatConfigIssueSummary } from "./issue-format.js";
 import { resolveStateDir } from "./paths.js";
 import {
@@ -22,7 +29,7 @@ import {
 import type { ConfigFileSnapshot } from "./types.openclaw.js";
 
 /** Dependencies injected into config recovery observation for testable filesystem behavior. */
-export type ObserveRecoveryDeps = {
+type ObserveRecoveryDeps = {
   fs: {
     promises: {
       stat(path: string): Promise<{
@@ -90,22 +97,6 @@ export type ObserveRecoveryDeps = {
   logger: Pick<typeof console, "warn">;
 };
 
-type ConfigHealthFingerprint = {
-  hash: string;
-  bytes: number;
-  mtimeMs: number | null;
-  ctimeMs: number | null;
-  dev: string | null;
-  ino: string | null;
-  mode: number | null;
-  nlink: number | null;
-  uid: number | null;
-  gid: number | null;
-  hasMeta: boolean;
-  gatewayMode: string | null;
-  observedAt: string;
-};
-
 type ConfigStatMetadataSource =
   | ({
       mtimeMs?: number;
@@ -119,16 +110,50 @@ type ConfigStatMetadataSource =
     } & Record<string, unknown>)
   | null;
 
-type ConfigHealthEntry = {
-  lastKnownGood?: ConfigHealthFingerprint;
-  lastPromotedGood?: ConfigHealthFingerprint;
-  lastObservedSuspiciousSignature?: string | null;
-};
+function formatConfigPermissionHardeningWarning(params: {
+  configPath: string;
+  context: string;
+  error: unknown;
+}): string {
+  const detail = params.error instanceof Error ? params.error.message : String(params.error);
+  return `Config permission hardening failed (${params.context}): ${params.configPath}: ${detail}`;
+}
 
-type ConfigHealthState = {
-  entries?: Record<string, ConfigHealthEntry>;
-};
+async function chmodConfigBestEffort(params: {
+  deps: ObserveRecoveryDeps;
+  configPath: string;
+  context: string;
+}): Promise<void> {
+  try {
+    await params.deps.fs.promises.chmod?.(params.configPath, 0o600);
+  } catch (error) {
+    params.deps.logger.warn(
+      formatConfigPermissionHardeningWarning({
+        configPath: params.configPath,
+        context: params.context,
+        error,
+      }),
+    );
+  }
+}
 
+function chmodConfigBestEffortSync(params: {
+  deps: ObserveRecoveryDeps;
+  configPath: string;
+  context: string;
+}): void {
+  try {
+    params.deps.fs.chmodSync?.(params.configPath, 0o600);
+  } catch (error) {
+    params.deps.logger.warn(
+      formatConfigPermissionHardeningWarning({
+        configPath: params.configPath,
+        context: params.context,
+        error,
+      }),
+    );
+  }
+}
 type ConfigReadRecoveryParams = {
   deps: ObserveRecoveryDeps;
   configPath: string;
@@ -136,6 +161,7 @@ type ConfigReadRecoveryParams = {
   parsed: unknown;
   validateBackup?: (backup: { raw: string; parsed: unknown }) => Promise<boolean>;
   validateBackupSync?: (backup: { raw: string; parsed: unknown }) => boolean;
+  allowBackupRecovery?: () => Promise<boolean>;
 };
 
 type ConfigReadRecoveryResult = {
@@ -216,7 +242,6 @@ function createConfigObserveAuditAppendParams(
   params: ConfigObserveAuditRecordParams,
 ) {
   return {
-    fs: deps.fs,
     env: deps.env,
     homedir: deps.homedir,
     record: createConfigObserveAuditRecord(params),
@@ -336,72 +361,27 @@ function parseConfigRawOrEmpty(deps: ObserveRecoveryDeps, raw: string): unknown 
   }
 }
 
-function resolveConfigHealthStatePath(env: NodeJS.ProcessEnv, homedir: () => string): string {
-  return path.join(resolveStateDir(env, homedir), "logs", "config-health.json");
-}
-
-function formatObserveRecoveryError(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
 function returnOriginalConfigRead(params: ConfigReadRecoveryParams): ConfigReadRecoveryResult {
   return { raw: params.raw, parsed: params.parsed };
 }
 
 async function readConfigHealthState(deps: ObserveRecoveryDeps): Promise<ConfigHealthState> {
-  try {
-    const raw = await deps.fs.promises.readFile(
-      resolveConfigHealthStatePath(deps.env, deps.homedir),
-      "utf-8",
-    );
-    const parsed = deps.json5.parse(raw);
-    return isRecord(parsed) ? (parsed as ConfigHealthState) : {};
-  } catch {
-    return {};
-  }
+  return readConfigHealthStateFromStore(deps);
 }
 
 function readConfigHealthStateSync(deps: ObserveRecoveryDeps): ConfigHealthState {
-  try {
-    const raw = deps.fs.readFileSync(resolveConfigHealthStatePath(deps.env, deps.homedir), "utf-8");
-    const parsed = deps.json5.parse(raw);
-    return isRecord(parsed) ? (parsed as ConfigHealthState) : {};
-  } catch {
-    return {};
-  }
+  return readConfigHealthStateFromStore(deps);
 }
 
 async function writeConfigHealthState(
   deps: ObserveRecoveryDeps,
   state: ConfigHealthState,
 ): Promise<void> {
-  const healthPath = resolveConfigHealthStatePath(deps.env, deps.homedir);
-  try {
-    await deps.fs.promises.mkdir(path.dirname(healthPath), { recursive: true, mode: 0o700 });
-    await deps.fs.promises.writeFile(healthPath, `${JSON.stringify(state, null, 2)}\n`, {
-      encoding: "utf-8",
-      mode: 0o600,
-    });
-  } catch (err) {
-    deps.logger.warn(
-      `Config health-state write failed: ${healthPath}: ${formatObserveRecoveryError(err)}`,
-    );
-  }
+  writeConfigHealthStateToStore(deps, state);
 }
 
 function writeConfigHealthStateSync(deps: ObserveRecoveryDeps, state: ConfigHealthState): void {
-  const healthPath = resolveConfigHealthStatePath(deps.env, deps.homedir);
-  try {
-    deps.fs.mkdirSync(path.dirname(healthPath), { recursive: true, mode: 0o700 });
-    deps.fs.writeFileSync(healthPath, `${JSON.stringify(state, null, 2)}\n`, {
-      encoding: "utf-8",
-      mode: 0o600,
-    });
-  } catch (err) {
-    deps.logger.warn(
-      `Config health-state write failed: ${healthPath}: ${formatObserveRecoveryError(err)}`,
-    );
-  }
+  writeConfigHealthStateToStore(deps, state);
 }
 
 function parseBackupConfigRaw(
@@ -510,49 +490,6 @@ function createBackupRestoreAuditAppendParams(params: {
   });
 }
 
-function isUpdateChannelOnlyRoot(value: unknown): boolean {
-  if (!isRecord(value)) {
-    return false;
-  }
-  const keys = Object.keys(value);
-  if (keys.length !== 1 || keys[0] !== "update") {
-    return false;
-  }
-  const update = value.update;
-  if (!isRecord(update)) {
-    return false;
-  }
-  const updateKeys = Object.keys(update);
-  return updateKeys.length === 1 && typeof update.channel === "string";
-}
-
-function resolveConfigObserveSuspiciousReasons(params: {
-  bytes: number;
-  hasMeta: boolean;
-  gatewayMode: string | null;
-  parsed: unknown;
-  lastKnownGood?: ConfigHealthFingerprint;
-}): string[] {
-  const reasons: string[] = [];
-  const baseline = params.lastKnownGood;
-  if (!baseline) {
-    return reasons;
-  }
-  if (baseline.bytes >= 512 && params.bytes < Math.floor(baseline.bytes * 0.5)) {
-    reasons.push(`size-drop-vs-last-good:${baseline.bytes}->${params.bytes}`);
-  }
-  if (baseline.hasMeta && !params.hasMeta) {
-    reasons.push("missing-meta-vs-last-good");
-  }
-  if (baseline.gatewayMode && !params.gatewayMode) {
-    reasons.push("gateway-mode-missing-vs-last-good");
-  }
-  if (baseline.gatewayMode && isUpdateChannelOnlyRoot(params.parsed)) {
-    reasons.push("update-channel-only-root");
-  }
-  return reasons;
-}
-
 function resolveSuspiciousSignature(
   current: ConfigHealthFingerprint,
   suspicious: string[],
@@ -634,45 +571,39 @@ function readConfigFingerprintForPathSync(
   }
 }
 
-function resolveConfiguredLastKnownGoodConfigPath(
+function resolveLastKnownGoodConfigPaths(
   configPath: string,
-  env: NodeJS.ProcessEnv,
-  homedir: () => string,
-): string | null {
-  const explicit = env.OPENCLAW_CONFIG_LAST_GOOD_PATH?.trim();
-  if (explicit) {
-    return resolveHomeRelativePath(explicit, { env, homedir });
-  }
-
-  const stateDirOverride = env.OPENCLAW_STATE_DIR?.trim();
-  const configPathOverride = env.OPENCLAW_CONFIG_PATH?.trim();
-  if (!stateDirOverride || !configPathOverride) {
-    return null;
-  }
+  options: { env?: NodeJS.ProcessEnv; homedir?: () => string } = {},
+): { preferred: string; legacy: string[] } {
+  const env = options.env ?? process.env;
+  const homedir = options.homedir ?? (() => process.env.HOME ?? "");
 
   const stateDir = path.resolve(resolveStateDir(env, homedir));
   const resolvedConfigPath = path.resolve(configPath);
   const relative = path.relative(stateDir, resolvedConfigPath);
   const configIsInStateDir =
     relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
-  if (configIsInStateDir) {
-    return null;
+  if (!configIsInStateDir) {
+    const configPathHash = crypto.createHash("sha256").update(resolvedConfigPath).digest("hex");
+    const preferred = path.join(stateDir, `config.${configPathHash}.last-good`);
+    const legacy = [
+      path.join(stateDir, `${path.basename(configPath)}.last-good`),
+      `${configPath}.last-good`,
+    ].filter(
+      (candidate, index, candidates) =>
+        candidate !== preferred && candidates.indexOf(candidate) === index,
+    );
+    return { preferred, legacy };
   }
 
-  return path.join(stateDir, `${path.basename(configPath)}.last-good`);
+  return { preferred: `${configPath}.last-good`, legacy: [] };
 }
 
-export function resolveLastKnownGoodConfigPath(
+function resolveLastKnownGoodConfigPath(
   configPath: string,
   options: { env?: NodeJS.ProcessEnv; homedir?: () => string } = {},
 ): string {
-  const env = options.env ?? process.env;
-  const homedir = options.homedir ?? (() => process.env.HOME ?? "");
-  const configuredPath = resolveConfiguredLastKnownGoodConfigPath(configPath, env, homedir);
-  if (configuredPath) {
-    return configuredPath;
-  }
-  return `${configPath}.last-good`;
+  return resolveLastKnownGoodConfigPaths(configPath, options).preferred;
 }
 
 function isSensitiveConfigPath(pathLabel: string): boolean {
@@ -762,6 +693,9 @@ export async function maybeRecoverSuspiciousConfigRead(
   if (!backup?.gatewayMode) {
     return returnOriginalConfigRead(params);
   }
+  if (params.allowBackupRecovery && !(await params.allowBackupRecovery())) {
+    return returnOriginalConfigRead(params);
+  }
 
   const clobberedPath = await persistBoundedClobberedConfigSnapshot({
     deps: params.deps,
@@ -773,8 +707,15 @@ export async function maybeRecoverSuspiciousConfigRead(
   let restoredFromBackup = false;
   let restoreError: unknown;
   try {
-    await params.deps.fs.promises.copyFile(backupPath, params.configPath);
-    await params.deps.fs.promises.chmod?.(params.configPath, 0o600).catch(() => {});
+    await params.deps.fs.promises.writeFile(params.configPath, backupRaw, {
+      encoding: "utf-8",
+      mode: 0o600,
+    });
+    await chmodConfigBestEffort({
+      deps: params.deps,
+      configPath: params.configPath,
+      context: "backup restore",
+    });
     restoredFromBackup = true;
   } catch (error) {
     restoreError = error;
@@ -880,10 +821,15 @@ export function maybeRecoverSuspiciousConfigReadSync(
   let restoredFromBackup = false;
   let restoreError: unknown;
   try {
-    params.deps.fs.copyFileSync(backupPath, params.configPath);
-    try {
-      params.deps.fs.chmodSync?.(params.configPath, 0o600);
-    } catch {}
+    params.deps.fs.writeFileSync(params.configPath, backupRaw, {
+      encoding: "utf-8",
+      mode: 0o600,
+    });
+    chmodConfigBestEffortSync({
+      deps: params.deps,
+      configPath: params.configPath,
+      context: "backup restore",
+    });
     restoredFromBackup = true;
   } catch (error) {
     restoreError = error;
@@ -963,7 +909,11 @@ export async function promoteConfigSnapshotToLastKnownGood(params: {
     encoding: "utf-8",
     mode: 0o600,
   });
-  await deps.fs.promises.chmod?.(lastGoodPath, 0o600).catch(() => {});
+  await chmodConfigBestEffort({
+    deps,
+    configPath: lastGoodPath,
+    context: "last-known-good promotion",
+  });
   const healthState = await readConfigHealthState(deps);
   const entry = getConfigHealthEntry(healthState, snapshot.path);
   await writeConfigHealthState(
@@ -1001,12 +951,21 @@ export async function recoverConfigFromLastKnownGood(params: {
   if (!promoted?.hash) {
     return false;
   }
-  const lastGoodPath = resolveLastKnownGoodConfigPath(snapshot.path, {
+  const lastGoodPaths = resolveLastKnownGoodConfigPaths(snapshot.path, {
     env: deps.env,
     homedir: deps.homedir,
   });
-  const backupRaw = await deps.fs.promises.readFile(lastGoodPath, "utf-8").catch(() => null);
-  if (!backupRaw || hashConfigRaw(backupRaw) !== promoted.hash) {
+  let lastGoodPath = lastGoodPaths.preferred;
+  let backupRaw: string | null = null;
+  for (const candidatePath of [lastGoodPaths.preferred, ...lastGoodPaths.legacy]) {
+    const candidateRaw = await deps.fs.promises.readFile(candidatePath, "utf-8").catch(() => null);
+    if (candidateRaw && hashConfigRaw(candidateRaw) === promoted.hash) {
+      lastGoodPath = candidatePath;
+      backupRaw = candidateRaw;
+      break;
+    }
+  }
+  if (!backupRaw) {
     return false;
   }
   let backupParsed: unknown;
@@ -1022,6 +981,27 @@ export async function recoverConfigFromLastKnownGood(params: {
     );
     return false;
   }
+  if (lastGoodPath !== lastGoodPaths.preferred) {
+    try {
+      await deps.fs.promises.mkdir(path.dirname(lastGoodPaths.preferred), {
+        recursive: true,
+        mode: 0o700,
+      });
+      await deps.fs.promises.writeFile(lastGoodPaths.preferred, backupRaw, {
+        encoding: "utf-8",
+        mode: 0o600,
+      });
+      await chmodConfigBestEffort({
+        deps,
+        configPath: lastGoodPaths.preferred,
+        context: "last-known-good migration",
+      });
+    } catch {
+      deps.logger.warn(
+        "Config last-known-good migration failed; recovery will continue from the authenticated legacy snapshot",
+      );
+    }
+  }
   const now = new Date().toISOString();
   const stat = await deps.fs.promises.stat(snapshot.path).catch(() => null);
   const current = createConfigHealthFingerprint({
@@ -1032,14 +1012,20 @@ export async function recoverConfigFromLastKnownGood(params: {
     stat: stat as ConfigStatMetadataSource,
     observedAt: now,
   });
-  const clobberedPath = await persistBoundedClobberedConfigSnapshot({
+  const clobberedPath = await preserveConfigSnapshotAsClobbered({
     deps,
-    configPath: snapshot.path,
-    raw: snapshot.raw,
+    snapshot,
     observedAt: now,
   });
-  await deps.fs.promises.copyFile(lastGoodPath, snapshot.path);
-  await deps.fs.promises.chmod?.(snapshot.path, 0o600).catch(() => {});
+  await deps.fs.promises.writeFile(snapshot.path, backupRaw, {
+    encoding: "utf-8",
+    mode: 0o600,
+  });
+  await chmodConfigBestEffort({
+    deps,
+    configPath: snapshot.path,
+    context: "last-known-good recovery",
+  });
   const issueSummary = formatConfigIssueSummary([...snapshot.issues, ...snapshot.legacyIssues]);
   deps.logger.warn(
     `Config auto-restored from last-known-good: ${snapshot.path} (${params.reason})${issueSummary ? `; Rejected validation details: ${issueSummary}.` : ""}`,
@@ -1069,3 +1055,20 @@ export async function recoverConfigFromLastKnownGood(params: {
   );
   return true;
 }
+
+export async function preserveConfigSnapshotAsClobbered(params: {
+  deps: ObserveRecoveryDeps;
+  snapshot: ConfigFileSnapshot;
+  observedAt?: string;
+}): Promise<string | null> {
+  if (!params.snapshot.exists || typeof params.snapshot.raw !== "string") {
+    return null;
+  }
+  return await persistBoundedClobberedConfigSnapshot({
+    deps: params.deps,
+    configPath: params.snapshot.path,
+    raw: params.snapshot.raw,
+    observedAt: params.observedAt ?? new Date().toISOString(),
+  });
+}
+/* oxlint-disable max-lines -- TODO: split this grandfathered oversized file. */

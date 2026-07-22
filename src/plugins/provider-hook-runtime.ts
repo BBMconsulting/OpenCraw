@@ -38,7 +38,7 @@ let providerRuntimePluginCache: ConfigScopedRuntimeCache<ProviderPlugin | null> 
 const defaultProviderRuntimePluginCache = new PluginLruCache<ProviderPlugin | null>(128);
 const PREPARED_PROVIDER_RUNTIME_SURFACES = ["channel"] as const;
 
-export type ProviderRuntimePluginLookupParams = {
+type ProviderRuntimePluginLookupParams = {
   provider: string;
   modelId?: string | null;
   config?: OpenClawConfig;
@@ -53,7 +53,7 @@ export type ProviderRuntimePluginHandle = ProviderRuntimePluginLookupParams & {
   plugin?: ProviderPlugin;
 };
 
-export type ProviderRuntimePluginHandleParams = ProviderRuntimePluginLookupParams & {
+type ProviderRuntimePluginHandleParams = ProviderRuntimePluginLookupParams & {
   runtimeHandle?: ProviderRuntimePluginHandle;
 };
 
@@ -446,5 +446,20 @@ export function wrapProviderStreamFn(params: {
 }) {
   return (
     ensureProviderRuntimePluginHandle(params).plugin?.wrapStreamFn?.(params.context) ?? undefined
+  );
+}
+
+export function wrapProviderSimpleCompletionStreamFn(params: {
+  provider: string;
+  config?: OpenClawConfig;
+  workspaceDir?: string;
+  env?: NodeJS.ProcessEnv;
+  runtimeHandle?: ProviderRuntimePluginHandle;
+  context: ProviderWrapStreamFnContext;
+}) {
+  return (
+    ensureProviderRuntimePluginHandle(params).plugin?.wrapSimpleCompletionStreamFn?.(
+      params.context,
+    ) ?? undefined
   );
 }

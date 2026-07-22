@@ -5,7 +5,7 @@
  */
 import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
 import { uniqueStrings } from "@openclaw/normalization-core/string-normalization";
-import type { TSchema } from "typebox";
+import { Type, type TSchema } from "typebox";
 import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { formatErrorMessage } from "../../infra/errors.js";
 import { defaultRuntime } from "../../runtime.js";
@@ -248,24 +248,6 @@ export function resolveMessageActionDiscoveryForPlugin(params: {
 }
 
 /**
- * Lists message actions available across registered channel plugins.
- */
-export function listChannelMessageActions(cfg: OpenClawConfig): ChannelMessageActionName[] {
-  const actions = new Set<ChannelMessageActionName>(["send", "broadcast"]);
-  for (const plugin of listChannelPlugins()) {
-    for (const action of resolveMessageActionDiscoveryForPlugin({
-      pluginId: plugin.id,
-      actions: plugin.actions,
-      context: { cfg },
-      includeActions: true,
-    }).actions) {
-      actions.add(action);
-    }
-  }
-  return Array.from(actions);
-}
-
-/**
  * Lists actions whose schemas do not block cross-channel tool usage.
  */
 export function listCrossChannelSchemaSupportedMessageActions(
@@ -315,7 +297,7 @@ export function listCrossChannelSchemaSupportedMessageActions(
 /**
  * Lists message capabilities advertised across registered channel plugins.
  */
-export function listChannelMessageCapabilities(cfg: OpenClawConfig): ChannelMessageCapability[] {
+function listChannelMessageCapabilities(cfg: OpenClawConfig): ChannelMessageCapability[] {
   const capabilities = new Set<ChannelMessageCapability>();
   for (const plugin of listChannelPlugins()) {
     for (const capability of resolveMessageActionDiscoveryForPlugin({
@@ -333,7 +315,7 @@ export function listChannelMessageCapabilities(cfg: OpenClawConfig): ChannelMess
 /**
  * Lists message capabilities advertised by the current channel.
  */
-export function listChannelMessageCapabilitiesForChannel(
+function listChannelMessageCapabilitiesForChannel(
   params: ChannelMessageActionDiscoveryParams,
 ): ChannelMessageCapability[] {
   const pluginActions = resolveCurrentChannelMessageToolDiscoveryAdapter(params.channel);
@@ -361,9 +343,14 @@ function mergeToolSchemaProperties(
     return;
   }
   for (const [name, schema] of Object.entries(source)) {
-    if (!(name in target)) {
-      target[name] = schema;
+    if (name in target) {
+      continue;
     }
+    // Message-tool params dispatch on `action`; no contributed property may be
+    // object-level required. Type.Object treats schemas missing typebox's
+    // non-enumerable `~optional` marker (plain JSON or cloned/serialized plugin
+    // schemas) as required, which fails validation for every message call.
+    target[name] = Type.IsOptional(schema) ? schema : Type.Optional(schema);
   }
 }
 
@@ -460,10 +447,3 @@ export function channelSupportsMessageCapabilityForChannel(
 ): boolean {
   return listChannelMessageCapabilitiesForChannel(params).includes(capability);
 }
-
-export const testing = {
-  resetLoggedMessageActionErrors() {
-    loggedMessageActionErrors.clear();
-  },
-};
-export { testing as __testing };
