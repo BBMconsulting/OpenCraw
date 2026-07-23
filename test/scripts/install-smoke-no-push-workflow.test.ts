@@ -54,9 +54,9 @@ function step(workflowJob: WorkflowJob, name: string): WorkflowStep {
 }
 
 describe("install smoke no-push root image transport", () => {
-  it("keeps schedule/manual orchestration read-only and delegates to the reusable core", () => {
+  it("keeps manual orchestration read-only and delegates to the reusable core", () => {
     const workflow = readWorkflow(INSTALL_SMOKE);
-    expect(workflow.on?.schedule).toBeDefined();
+    expect(workflow.on?.schedule).toBeUndefined();
     expect(workflow.on?.workflow_dispatch?.inputs).toMatchObject({
       run_bun_global_install_smoke: { default: false, type: "boolean" },
       update_baseline_version: { default: "latest", type: "string" },
@@ -78,8 +78,7 @@ describe("install smoke no-push root image transport", () => {
     expect(delegated.with).toMatchObject({
       allow_unreleased_changelog: true,
       ref: "${{ github.sha }}",
-      run_bun_global_install_smoke:
-        "${{ github.event_name == 'schedule' || inputs.run_bun_global_install_smoke }}",
+      run_bun_global_install_smoke: "${{ inputs.run_bun_global_install_smoke }}",
       update_baseline_version: "${{ inputs.update_baseline_version || 'latest' }}",
     });
     expect(readFileSync(INSTALL_SMOKE, "utf8")).not.toContain("packages: write");

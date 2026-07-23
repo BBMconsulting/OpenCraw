@@ -1,11 +1,36 @@
 name: Docs
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
       - "**/*.md"
       - "docs/**"
+      - ".github/actions/setup-node-env/**"
+      - ".github/workflows/docs.yml"
+      - "config/markdownlint-cli2.jsonc"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "scripts/check-docs*.mjs"
+      - "scripts/docs-*.mjs"
+      - "scripts/format-docs.mjs"
+      - "scripts/generate-docs-map.mjs"
+      - "!CHANGELOG.md"
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+    paths:
+      - "**/*.md"
+      - "docs/**"
+      - ".github/actions/setup-node-env/**"
+      - ".github/workflows/docs.yml"
+      - "config/markdownlint-cli2.jsonc"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "scripts/check-docs*.mjs"
+      - "scripts/docs-*.mjs"
+      - "scripts/format-docs.mjs"
+      - "scripts/generate-docs-map.mjs"
       - "!CHANGELOG.md"
 
 permissions:
@@ -36,16 +61,5 @@ jobs:
         with:
           install-bun: "false"
 
-      - name: Checkout ClawHub docs source
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
-        with:
-          repository: openclaw/clawhub
-          ref: main
-          path: clawhub-source
-          fetch-depth: 1
-          persist-credentials: false
-
       - name: Check docs
-        env:
-          OPENCLAW_DOCS_SYNC_CLAWHUB_REPO: ${{ github.workspace }}/clawhub-source
         run: pnpm check:docs

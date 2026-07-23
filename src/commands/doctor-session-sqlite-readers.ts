@@ -48,7 +48,7 @@ type TranscriptEventCountResult =
   | { status: "missing" }
   | { status: "malformed"; message: string };
 
-export type RecoverableTranscriptInspection =
+type RecoverableTranscriptInspection =
   | {
       status: "ok";
       events: number;

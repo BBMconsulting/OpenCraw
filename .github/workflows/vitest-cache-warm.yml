@@ -1,10 +1,7 @@
 name: Vitest Cache Warm
 
 on:
-  repository_dispatch:
-    types: [vitest-cache-warm]
-  schedule:
-    - cron: "17 8 * * *"
+  workflow_dispatch:
 
 permissions:
   contents: read

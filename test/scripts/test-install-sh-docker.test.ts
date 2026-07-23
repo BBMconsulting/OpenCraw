@@ -1827,7 +1827,7 @@ chmod +x "$BUN_INSTALL/bin/openclaw"
     },
   );
 
-  it("gates workflow Bun install smoke to scheduled and release-check runs", () => {
+  it("gates workflow Bun install smoke to manual and release-check runs", () => {
     const workflow = readFileSync(INSTALL_SMOKE_WORKFLOW_PATH, "utf8");
     const wrapper = readFileSync(INSTALL_SMOKE_WRAPPER_PATH, "utf8");
     const releaseChecks = readFileSync(RELEASE_CHECKS_WORKFLOW_PATH, "utf8");
@@ -1837,11 +1837,11 @@ chmod +x "$BUN_INSTALL/bin/openclaw"
     expect(workflow).toContain("workflow_call:");
     expect(workflow).not.toContain("workflow_dispatch:");
     expect(workflow).not.toContain("schedule:");
-    expect(wrapper).toContain('cron: "17 3 * * *"');
+    expect(wrapper).not.toContain("schedule:");
     expect(wrapper).toContain("workflow_dispatch:");
     expect(wrapper).toContain("uses: ./.github/workflows/install-smoke-reusable.yml");
     expect(wrapper).toContain(
-      "github.event_name == 'schedule' || inputs.run_bun_global_install_smoke",
+      "run_bun_global_install_smoke: ${{ inputs.run_bun_global_install_smoke }}",
     );
     expect(workflow).toContain("run_bun_global_install_smoke:");
     expect(workflow).toContain(

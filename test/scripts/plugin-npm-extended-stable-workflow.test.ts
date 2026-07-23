@@ -137,11 +137,9 @@ describe("plugin npm extended-stable workflow", () => {
     }
     expect(step(preview, "Setup Node environment").uses).toBe("./.github/actions/setup-node-env");
     expect(trusted.env).toMatchObject({
-      PREFLIGHT_ONLY:
-        "${{ github.event_name == 'workflow_dispatch' && inputs.preflight_only || false }}",
-      RELEASE_PUBLISH_RUN_ID:
-        "${{ github.event_name == 'workflow_dispatch' && inputs.release_publish_run_id || '' }}",
-      SOURCE_REF: "${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.sha }}",
+      PREFLIGHT_ONLY: "${{ inputs.preflight_only }}",
+      RELEASE_PUBLISH_RUN_ID: "${{ inputs.release_publish_run_id }}",
+      SOURCE_REF: "${{ inputs.ref }}",
       WORKFLOW_REF: "${{ github.ref }}",
       WORKFLOW_SHA: "${{ github.workflow_sha }}",
     });

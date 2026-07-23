@@ -1,23 +1,7 @@
 name: Plugin NPM Release
-run-name: ${{ github.event_name == 'workflow_dispatch' && (inputs.preflight_only && format('Plugin NPM Preflight [{0}] {1}', inputs.npm_dist_tag, inputs.ref) || format('Plugin NPM Release [{0}] {1}', inputs.npm_dist_tag, inputs.ref)) || format('Plugin NPM Release [default] {0}', github.sha) }}
+run-name: ${{ inputs.preflight_only && format('Plugin NPM Preflight [{0}] {1}', inputs.npm_dist_tag, inputs.ref) || format('Plugin NPM Release [{0}] {1}', inputs.npm_dist_tag, inputs.ref) }}
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/plugin-npm-release.yml"
-      - "extensions/**"
-      - "package.json"
-      - "scripts/lib/npm-publish-plan.mjs"
-      - "scripts/lib/plugin-npm-package-manifest.mjs"
-      - "scripts/lib/plugin-npm-release.ts"
-      - "scripts/lib/actions-artifact-archive.mjs"
-      - "scripts/plugin-npm-publish.sh"
-      - "scripts/plugin-publication-artifact.mjs"
-      - "scripts/plugin-npm-release-check.ts"
-      - "scripts/plugin-npm-release-plan.ts"
-      - "scripts/verify-plugin-npm-published-runtime.mjs"
   workflow_dispatch:
     inputs:
       publish_scope:
@@ -55,8 +39,8 @@ on:
           - extended-stable
 
 concurrency:
-  group: plugin-npm-release-${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+  group: plugin-npm-release-${{ inputs.ref }}
+  cancel-in-progress: false
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -80,7 +64,7 @@ jobs:
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           persist-credentials: false
-          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.sha }}
+          ref: ${{ inputs.ref }}
           fetch-depth: 0
           filter: blob:none
 
@@ -90,12 +74,12 @@ jobs:
 
       - name: Validate ref is on a trusted publish branch
         env:
-          NPM_DIST_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.npm_dist_tag || 'default' }}
-          PREFLIGHT_ONLY: ${{ github.event_name == 'workflow_dispatch' && inputs.preflight_only || false }}
-          PUBLISH_SCOPE: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_scope || '' }}
-          RELEASE_PLUGINS: ${{ github.event_name == 'workflow_dispatch' && inputs.plugins || '' }}
-          RELEASE_PUBLISH_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.release_publish_run_id || '' }}
-          SOURCE_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.sha }}
+          NPM_DIST_TAG: ${{ inputs.npm_dist_tag }}
+          PREFLIGHT_ONLY: ${{ inputs.preflight_only }}
+          PUBLISH_SCOPE: ${{ inputs.publish_scope }}
+          RELEASE_PLUGINS: ${{ inputs.plugins }}
+          RELEASE_PUBLISH_RUN_ID: ${{ inputs.release_publish_run_id }}
+          SOURCE_REF: ${{ inputs.ref }}
           WORKFLOW_REF: ${{ github.ref }}
           WORKFLOW_SHA: ${{ github.workflow_sha }}
         run: |

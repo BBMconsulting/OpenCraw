@@ -1,0 +1,160 @@
+name: OpenCraw CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  quality:
+    name: Format, lint, and typecheck
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          persist-credentials: false
+          submodules: false
+
+      - name: Install frozen dependencies
+        uses: ./.github/actions/setup-node-env
+        with:
+          frozen-lockfile: "true"
+          install-bun: "false"
+
+      - name: Check formatting
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck production projects
+        run: pnpm tsgo:prod
+
+  tests:
+    name: Focused unit and integration tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          persist-credentials: false
+          submodules: false
+
+      - name: Install frozen dependencies
+        uses: ./.github/actions/setup-node-env
+        with:
+          frozen-lockfile: "true"
+          install-bun: "false"
+
+      - name: Run fast unit suite
+        run: pnpm test:unit:fast
+
+      - name: Run workflow policy integration tests
+        run: >-
+          node scripts/run-vitest.mjs run
+          test/scripts/opencraw-actions-policy.test.ts
+          test/scripts/install-smoke-no-push-workflow.test.ts
+          test/scripts/plugin-npm-extended-stable-workflow.test.ts
+
+  build:
+    name: Production build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          persist-credentials: false
+          submodules: false
+
+      - name: Install frozen dependencies
+        uses: ./.github/actions/setup-node-env
+        with:
+          frozen-lockfile: "true"
+          install-bun: "false"
+
+      - name: Build production artifacts
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
+        run: pnpm build
+
+      - name: Smoke test built CLI
+        run: node openclaw.mjs --help
+
+  security:
+    name: Security, secrets, and workflows
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout full scan range
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+
+      - name: Install frozen dependencies and TruffleHog
+        uses: ./.github/actions/setup-node-env
+        with:
+          frozen-lockfile: "true"
+          install-bun: "false"
+          install-trufflehog: "true"
+
+      - name: Resolve bounded secret scan range
+        id: scan-range
+        env:
+          EVENT_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before || '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_sha="$EVENT_BASE_SHA"
+          if [[ ! "$base_sha" =~ ^[0-9a-f]{40}$ ]] ||
+            [[ "$base_sha" == "0000000000000000000000000000000000000000" ]] ||
+            ! git cat-file -e "${base_sha}^{commit}" 2>/dev/null; then
+            base_sha="$(git rev-parse HEAD^)"
+          fi
+          echo "base=$base_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Scan changed commits for leaked credentials
+        env:
+          BASE_SHA: ${{ steps.scan-range.outputs.base }}
+        run: >-
+          trufflehog git file://.
+          --since-commit "$BASE_SHA"
+          --branch HEAD
+          --results=verified,unknown
+          --fail
+          --fail-on-scan-errors
+
+      - name: Install workflow audit runner
+        run: python3 -m pip install --disable-pip-version-check pre-commit==4.2.0
+
+      - name: Detect committed private keys
+        run: pre-commit run --all-files detect-private-key
+
+      - name: Validate and audit workflows
+        run: pnpm check:workflows
+
+      - name: Audit production dependencies
+        run: node scripts/pre-commit/pnpm-audit-prod.mjs --audit-level=high

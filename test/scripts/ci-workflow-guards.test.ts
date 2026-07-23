@@ -281,10 +281,6 @@ function readWorkflowSanityWorkflow() {
   return parse(readFileSync(".github/workflows/workflow-sanity.yml", "utf8"));
 }
 
-function readRealBehaviorProofWorkflow() {
-  return parse(readFileSync(".github/workflows/real-behavior-proof.yml", "utf8"));
-}
-
 function readMaturityScorecardWorkflow() {
   return parse(readFileSync(MATURITY_SCORECARD_WORKFLOW, "utf8"));
 }
@@ -382,19 +378,6 @@ function readReleaseChecksWorkflow() {
 
 function readCriticalQualityWorkflow() {
   return readFileSync(".github/workflows/codeql-critical-quality.yml", "utf8");
-}
-
-function readWorkflow(path: string) {
-  return parse(readFileSync(path, "utf8"));
-}
-
-const PULL_REQUEST_EDIT_FIELDS = ["title", "body", "base"] as const;
-
-function readPullRequestEditFields(condition: unknown) {
-  const expression = typeof condition === "string" ? condition : "";
-  return PULL_REQUEST_EDIT_FIELDS.filter((field) =>
-    expression.includes(`github.event.changes.${field}`),
-  );
 }
 
 function readTrackedText(relativePath: string): string {
@@ -740,50 +723,15 @@ function runGeneratedPublisherScenario(
 }
 
 describe("ci workflow guards", () => {
-  it("routes PR edited metadata only to interested automation", () => {
-    const autoResponse = readWorkflow(".github/workflows/auto-response.yml");
-    const clawsweeperDispatch = readWorkflow(".github/workflows/clawsweeper-dispatch.yml");
-    const labeler = readWorkflow(".github/workflows/labeler.yml");
-    const realBehaviorProof = readWorkflow(".github/workflows/real-behavior-proof.yml");
-
-    for (const workflow of [autoResponse, clawsweeperDispatch, labeler, realBehaviorProof]) {
-      expect(workflow.on.pull_request_target.types).toContain("edited");
+  it("keeps upstream organization metadata automation inactive in OpenCraw", () => {
+    for (const workflow of [
+      "auto-response.yml",
+      "clawsweeper-dispatch.yml",
+      "labeler.yml",
+      "real-behavior-proof.yml",
+    ]) {
+      expect(existsSync(`.github/workflows/${workflow}`), workflow).toBe(false);
     }
-
-    expect({
-      autoResponse: readPullRequestEditFields(autoResponse.jobs["auto-response"].if),
-      clawsweeperDispatch: readPullRequestEditFields(clawsweeperDispatch.jobs.dispatch.if),
-      labeler: readPullRequestEditFields(labeler.jobs.label.if),
-      realBehaviorProof: readPullRequestEditFields(
-        realBehaviorProof.jobs["real-behavior-proof"].if,
-      ),
-    }).toEqual({
-      autoResponse: [],
-      clawsweeperDispatch: [],
-      labeler: ["title", "base"],
-      realBehaviorProof: ["body", "base"],
-    });
-
-    const labelerSteps = labeler.jobs.label.steps;
-    const changedFieldsForStep = (matcher: (step: WorkflowStep) => boolean) =>
-      readPullRequestEditFields(labelerSteps.find(matcher)?.if);
-    expect({
-      pathLabels: changedFieldsForStep(
-        (step) => step.uses?.startsWith("actions/labeler@") === true,
-      ),
-      size: changedFieldsForStep((step) => step.name === "Apply PR size label"),
-      contributor: changedFieldsForStep(
-        (step) => step.name === "Apply maintainer or trusted-contributor label",
-      ),
-      betaBlocker: changedFieldsForStep((step) => step.name === "Apply beta-blocker title label"),
-      activePrLimit: changedFieldsForStep((step) => step.name === "Apply too-many-prs label"),
-    }).toEqual({
-      pathLabels: ["base"],
-      size: ["base"],
-      contributor: [],
-      betaBlocker: ["title"],
-      activePrLimit: [],
-    });
   });
 
   it("makes the hosted release-gate fallback explicit and exact-SHA only", () => {
@@ -980,12 +928,8 @@ describe("ci workflow guards", () => {
       type: "boolean",
     });
     expect(workflow.on.workflow_dispatch?.inputs).toBeUndefined();
-    expect(workflow.on.push.paths).toContain("ui/src/i18n/.i18n/glossary.*.json");
-    expect(workflow.on.push.paths).toContain("apps/.i18n/native/**");
-    expect(workflow.on.push.paths).toContain("apps/.i18n/native-source.json");
-    expect(workflow.on.push.paths).toContain("apps/android/wear/src/main/**");
-    expect(workflow.on.push.paths).toContain("scripts/android-app-i18n.ts");
-    expect(workflow.on.push.paths).toContain("scripts/apple-app-i18n.ts");
+    expect(Object.keys(workflow.on)).toEqual(["workflow_dispatch"]);
+    expect(Object.keys(controlUiWorkflow.on)).toEqual(["workflow_dispatch"]);
     expect(refreshStep.run).toContain("run_refresh anthropic");
     expect(refreshStep.run).toContain("retrying with OpenAI");
     expect(refreshStep.run).toContain("run_openai_refresh");
@@ -1056,8 +1000,8 @@ describe("ci workflow guards", () => {
     );
 
     for (const ownerWorkflow of [controlUiWorkflow, workflow]) {
-      expect(ownerWorkflow.on.push.paths).toContain(CREATE_GENERATED_PR_TOKENS_ACTION);
-      expect(ownerWorkflow.on.push.paths).toContain(PUBLISH_GENERATED_PR_ACTION);
+      expect(JSON.stringify(ownerWorkflow)).toContain(CREATE_GENERATED_PR_TOKENS_ACTION);
+      expect(JSON.stringify(ownerWorkflow)).toContain(PUBLISH_GENERATED_PR_ACTION);
       const resolveBase = ownerWorkflow.jobs["resolve-base"];
       const resolveStep = resolveBase.steps.find(
         (step: { name?: string }) =>
@@ -1713,16 +1657,8 @@ describe("ci workflow guards", () => {
     }
   });
 
-  it("runs real behavior proof from the trusted workflow revision", () => {
-    const workflow = readRealBehaviorProofWorkflow();
-    const source = readFileSync(".github/workflows/real-behavior-proof.yml", "utf8");
-    const checkout = workflow.jobs["real-behavior-proof"].steps.find(
-      (step: WorkflowStep) => step.uses === CHECKOUT_V6,
-    );
-
-    expect(checkout.with.ref).toBe("${{ github.workflow_sha }}");
-    expect(checkout.with.ref).not.toBe("${{ github.event.pull_request.base.sha }}");
-    expect(source).toContain("Old PR events can carry a stale base SHA");
+  it("keeps upstream real behavior policy outside the OpenCraw active set", () => {
+    expect(existsSync(".github/workflows/real-behavior-proof.yml")).toBe(false);
   });
 
   it("keeps docs-change detection fail-safe and fixture-aware", () => {
@@ -2037,9 +1973,7 @@ describe("ci workflow guards", () => {
     );
     expect(warmSetupStep.with["save-sticky-disk"]).toBeUndefined();
     expect(warmSetupStep.with["sticky-disk"]).toBe("false");
-    expect(warmWorkflow.on).not.toHaveProperty("pull_request");
-    expect(warmWorkflow.on).not.toHaveProperty("workflow_dispatch");
-    expect(warmWorkflow.on).not.toHaveProperty("workflow_run");
+    expect(Object.keys(warmWorkflow.on)).toEqual(["workflow_dispatch"]);
     const action = parse(readFileSync(".github/actions/setup-node-env/action.yml", "utf8"));
     const validateLayoutStep = action.runs.steps.find(
       (step: WorkflowStep) => step.name === "Validate sticky pnpm layout",
@@ -2669,12 +2603,11 @@ describe("ci workflow guards", () => {
 
     expect(warmer.concurrency["cancel-in-progress"]).toBe(false);
     expect(warmer.concurrency.group).toBe("vitest-cache-warm");
-    expect(warmer.on.workflow_dispatch).toBeUndefined();
-    expect(warmer.on.repository_dispatch.types).toEqual(["vitest-cache-warm"]);
+    expect(Object.keys(warmer.on)).toEqual(["workflow_dispatch"]);
     expect(warmer.jobs.warm.if).toContain("github.repository == 'openclaw/openclaw'");
     expect(warmer.on).not.toHaveProperty("workflow_run");
     expect(checkoutStep.with).toBeUndefined();
-    expect(warmerSource).toContain('cron: "17 8 * * *"');
+    expect(warmerSource).not.toContain("schedule:");
     expect(warmerSource).toContain('candidate.shardName.startsWith("core-unit-fast")');
     expect(warmerSource).toContain('"agentic-agents-embedded"');
     expect(warmerSource).toContain('"agentic-gateway-methods"');
@@ -4488,7 +4421,7 @@ printf '%s\n' "\${CURL_SUCCESS_IP:-203.0.113.7}"
       "android",
     ];
 
-    expect(workflow.on.pull_request).not.toHaveProperty("paths-ignore");
+    expect(Object.keys(workflow.on)).toEqual(["workflow_dispatch"]);
     expect(gate.name).toBe("openclaw/ci-gate");
     expect(gate.needs).toEqual([...requiredJobs, ...selectedJobs]);
     expect(gate.needs.toSorted()).toEqual(
@@ -5186,14 +5119,14 @@ printf '%s\n' "\${CURL_SUCCESS_IP:-203.0.113.7}"
     );
   });
 
-  it("keeps push docs validation ClawHub-backed", () => {
+  it("keeps automatic docs validation self-contained", () => {
     const workflow = readFileSync(".github/workflows/docs.yml", "utf8");
 
-    expect(workflow).toContain("repository: openclaw/clawhub");
-    expect(workflow).toContain("path: clawhub-source");
-    expect(workflow).toContain(
-      "OPENCLAW_DOCS_SYNC_CLAWHUB_REPO: ${{ github.workspace }}/clawhub-source",
-    );
+    expect(workflow).toContain("workflow_dispatch:");
+    expect(workflow).toContain("pull_request:");
+    expect(workflow).toContain("run: pnpm check:docs");
+    expect(workflow).not.toContain("repository: openclaw/clawhub");
+    expect(workflow).not.toContain("OPENCLAW_DOCS_SYNC_CLAWHUB_REPO");
   });
 
   it("keeps network CodeQL off unrelated source-only refactors", () => {
