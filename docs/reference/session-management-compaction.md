@@ -29,6 +29,14 @@ Recovery uses migration manifests, restores only the affected archived support
 artifacts, prepares a sanitized GitHub issue report when requested, and does not
 make active runtime read JSONL files again.
 
+Doctor also detects valid transcript histories that are not referenced by the
+legacy `sessions.json` index. Those histories receive deterministic,
+content-addressed recovery keys, discoverable SQLite projections, and receipts
+that mark missing index metadata as reconstructed. Occupied session identifiers
+are never rebound. See [Session integrity recovery and validation
+isolation](/reference/session-integrity-recovery) for validation rules,
+collision behavior, and limitations.
+
 Gateway history readers avoid materializing the whole transcript unless the surface needs arbitrary historical access. First-page history, embedded chat history, restart recovery, and token/usage checks use bounded tail reads from SQLite. Full transcript scans go through the async transcript index and are shared across concurrent readers.
 
 ## On-disk locations

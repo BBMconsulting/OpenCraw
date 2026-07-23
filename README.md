@@ -9,4 +9,3 @@ Crawbie Pincherton—better known as CrawCraw—is the bold little crawfish behi
 # Originally forked from: [OpenClaw](https://github.com/openclaw/openclaw)
 
 We forked the upstream OpenClaw and Claw-Code repositories in order to manage our own packaging, changes, and customizations for internal development and client deployments. We are sharing this work in the spirit of giving back to the community. These repositories are public so the community can view, use, and learn from our work. Even when they are published as packaged releases, they are not presented as finished products for general consumption. Our intent is to maintain broad compatibility with the upstream projects we forked from, but compatibility is not guaranteed. This software is provided as-is, without warranty of any kind, express or implied. Use it at your own risk.
-

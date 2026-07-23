@@ -1634,5 +1634,9 @@
   {
     "source": "Gateway security",
     "target": "Gateway 安全"
+  },
+  {
+    "source": "Session integrity recovery and validation isolation",
+    "target": "会话完整性恢复与验证隔离"
   }
 ]

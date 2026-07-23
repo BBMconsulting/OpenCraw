@@ -8873,6 +8873,10 @@ Do not edit it by hand; run `pnpm docs:map:gen`.
 - Route: /reference/opencraw-fork-reconciliation
 - Headings:
   - H1: OpenCraw Fork Reconciliation Record
+  - H2: 2026-07-23 session integrity correction
+  - H3: Defect and continuing requirements
+  - H3: Downstream resolution
+  - H3: Upstream relationship and future reconciliation
   - H2: 2026-07-22 upstream synchronization
   - H3: Outcome
   - H3: Integration policy
@@ -8986,6 +8990,18 @@ Do not edit it by hand; run `pnpm docs:map:gen`.
   - H3: auth-profiles.json targets (secrets configure + secrets apply + secrets audit)
   - H2: Unsupported credentials
   - H2: Related
+
+## reference/session-integrity-recovery.md
+
+- Route: /reference/session-integrity-recovery
+- Headings:
+  - H1: Session integrity recovery and validation isolation
+  - H2: Unindexed history recovery
+  - H3: Collision and repeat behavior
+  - H3: Supported migration sequence
+  - H2: Isolated validation sessions
+  - H2: Tests and compatibility
+  - H2: Known limitations
 
 ## reference/session-management-compaction.md
 

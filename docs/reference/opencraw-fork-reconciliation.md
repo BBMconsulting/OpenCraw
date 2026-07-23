@@ -4,6 +4,74 @@ This record captures reusable source-integration decisions for the OpenCraw
 fork. Instance-specific paths, credentials, service state, backups, and
 validation session identifiers remain in the private instance log.
 
+## 2026-07-23 session integrity correction
+
+### Defect and continuing requirements
+
+The session-SQLite importer enumerated legacy histories only through
+`sessions.json`. Its later unreferenced-file pass archived every other JSONL
+artifact. A structurally valid transcript whose index entry had already been
+lost therefore retained its bytes but had no discoverable SQLite session,
+route, title projection, generation, or active-event projection.
+
+A separate validation-procedure defect allowed interface and model checks to
+use an existing production session key. Those prompts became legitimate
+persisted history inside working conversations. This was not a database key
+collision or an importer overwrite; the validation caller selected the wrong
+session scope.
+
+The continuing requirements are:
+
+- valid unindexed histories remain discoverable without overwriting occupied
+  sessions or fabricating original metadata;
+- recovery is deterministic, collision-resistant, idempotent, and evidenced;
+- invalid or ambiguous histories are warned about rather than guessed;
+- every delivering validation run uses an attributable, service-specific
+  validation key and never defaults to a working session;
+- browser-local Retry/X semantics remain unchanged until the stale-version
+  failure is independently reproduced.
+
+### Downstream resolution
+
+The Doctor importer now strictly classifies unreferenced JSONL before archive
+cleanup. Valid session histories receive content-addressed recovery keys and
+canonical SQLite entries, routes, generations, and active projections. A
+collision with an existing storage identifier produces a deterministic
+alternate identifier; a collision that cannot be resolved safely is blocking.
+Receipts expose source and resulting identifiers, the content SHA-256, event
+count, collision adjustment, and reconstructed-metadata status. The original
+JSONL remains in the migration archive after validation.
+
+The public validation helper generates keys under
+`agent:<agent>:validation:<service>:<purpose>:<UTC>:<nonce>` and provides the
+corresponding CLI arguments and optional Control UI URL. It rejects production
+keys and credential-bearing URLs. Instance ports, service paths, recovered
+identifiers, and operational evidence remain in the private record.
+
+The implementation and test matrix are documented in [Session integrity
+recovery and validation isolation](/reference/session-integrity-recovery).
+
+### Upstream relationship and future reconciliation
+
+The fixed upstream merge target
+`85fda04df765639c2e2695035f8d99b7d8f7319b` and the later upstream history
+reviewed on 2026-07-23 did not contain an equivalent unindexed-history import
+or validation-key procedure. This is therefore a maintained downstream
+functional requirement.
+
+At the next upstream synchronization, compare behavior rather than patch
+shape. Upstream may supersede the implementation only if it preserves valid
+unindexed content, creates a discoverable projection, prevents occupied-session
+rebinding, remains idempotent, distinguishes malformed input, records
+reconstructed metadata and archive evidence, and keeps delivering validation
+out of working sessions. A change that merely archives unindexed histories,
+silently selects `main`, bypasses the recovery scan, or weakens collision checks
+reintroduces the defect.
+
+No database schema change is part of this correction. Historical private-state
+recovery and validation-event separation are operational migrations and do not
+belong in public commits.
+
 ## 2026-07-22 upstream synchronization
 
 ### Outcome
