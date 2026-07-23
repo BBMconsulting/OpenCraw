@@ -108,6 +108,11 @@ export async function doctorCommand(runtime?: RuntimeEnv, options?: DoctorOption
         outputRuntime.log(
           `- ${target.agentId}: imported=${target.importedEntries}/${target.importedTranscriptEvents} events, validated=${target.validatedEntries}/${target.validatedTranscriptEvents} events, archived-unreferenced-jsonl=${target.archivedUnreferencedJsonlFiles.length}, unreferenced-jsonl=${target.unreferencedJsonlFiles.length}`,
         );
+        for (const recovered of target.recoveredUnreferencedHistories ?? []) {
+          outputRuntime.log(
+            `  recovered-unreferenced-history: session=${recovered.sessionKey} events=${recovered.transcriptEvents} metadata=reconstructed collision-adjusted=${recovered.collisionAdjusted}`,
+          );
+        }
         if (target.restore) {
           outputRuntime.log(
             `  restored=${target.restore.restoredFiles.length}, skipped=${target.restore.skippedFiles.length}, conflicts=${target.restore.conflicts.length}, manifests=${target.restore.manifestPaths.length}`,

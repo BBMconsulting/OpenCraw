@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { isRecord } from "@openclaw/normalization-core/record-coerce";
@@ -48,6 +49,8 @@ import {
   countTranscriptEventsForPath,
   createTranscriptEventReader,
   createTranscriptEventPrefixReader,
+  hashFileSha256Sync,
+  inspectRecoverableTranscriptFile,
   readOnlySqliteDbStats,
   readOnlySqliteExactSessionEntry,
   readOnlySqliteSessionEntries,
@@ -87,6 +90,12 @@ type LegacySessionRecord = {
   entry: SessionEntry;
   sessionKey: string;
   transcriptPath?: string;
+  recovered?: {
+    collisionAdjusted: boolean;
+    contentSha256: string;
+    sourceSessionId: string;
+    transcriptHeaderId: string;
+  };
 };
 
 /** Runs the targeted doctor SQLite session migration/inspection submode. */
@@ -243,13 +252,27 @@ async function inspectOrMigrateTarget(params: {
   const allRecords = readLegacySessionRecords(params.target, issues, {
     allowMissingStore: params.mode === "inspect" || params.mode === "compact",
   });
+  const indexedTranscriptFiles = new Set(
+    allRecords.flatMap((record) => (record.transcriptPath ? [record.transcriptPath] : [])),
+  );
+  const recoveredRecords = discoverRecoverableUnreferencedHistories({
+    issues,
+    target: params.target,
+    indexedRecords: allRecords,
+    unreferencedPaths: listUnreferencedJsonlFiles(params.target.storePath, [
+      ...indexedTranscriptFiles,
+    ]),
+  });
+  const allDiscoverableRecords = [...allRecords, ...recoveredRecords];
   const records = shouldFilterLegacySessionRecordsByTarget(params.target)
-    ? allRecords.filter((record) =>
+    ? allDiscoverableRecords.filter((record) =>
         isLegacySessionRecordOwnedByTarget(params.cfg, params.target, record.sessionKey),
       )
-    : allRecords;
+    : allDiscoverableRecords;
   const referencedTranscriptFiles = new Set(
-    allRecords.flatMap((record) => (record.transcriptPath ? [record.transcriptPath] : [])),
+    allDiscoverableRecords.flatMap((record) =>
+      record.transcriptPath ? [record.transcriptPath] : [],
+    ),
   );
   const report: DoctorSessionSqliteTargetReport = {
     agentId: params.target.agentId,
@@ -267,6 +290,7 @@ async function inspectOrMigrateTarget(params: {
     unreferencedJsonlFiles: listUnreferencedJsonlFiles(params.target.storePath, [
       ...referencedTranscriptFiles,
     ]),
+    recoveredUnreferencedHistories: recoveredRecords.map(createRecoveredHistoryReceipt),
     validatedEntries: 0,
     validatedTranscriptEvents: 0,
   };
@@ -333,6 +357,177 @@ async function inspectOrMigrateTarget(params: {
     report.issues,
   );
   return report;
+}
+
+function createRecoveredHistoryReceipt(
+  record: LegacySessionRecord,
+): NonNullable<DoctorSessionSqliteTargetReport["recoveredUnreferencedHistories"]>[number] {
+  const recovered = record.recovered;
+  if (!recovered || !record.transcriptPath) {
+    throw new Error("Recovered history receipt requires recovery metadata and transcript path");
+  }
+  const counted = countTranscriptEvents(record);
+  return {
+    collisionAdjusted: recovered.collisionAdjusted,
+    contentSha256: recovered.contentSha256,
+    metadataReconstructed: true,
+    sessionId: record.entry.sessionId,
+    sessionKey: record.sessionKey,
+    sourcePath: record.transcriptPath,
+    sourceSessionId: recovered.sourceSessionId,
+    transcriptHeaderId: recovered.transcriptHeaderId,
+    transcriptEvents: counted.status === "ok" ? counted.events : 0,
+  };
+}
+
+function discoverRecoverableUnreferencedHistories(params: {
+  indexedRecords: readonly LegacySessionRecord[];
+  issues: DoctorSessionSqliteIssue[];
+  target: SessionStoreTarget;
+  unreferencedPaths: readonly string[];
+}): LegacySessionRecord[] {
+  const sqliteEntries = readOnlySqliteSessionEntries(params.target);
+  if (!sqliteEntries.ok) {
+    // Existing SQLite inspection/import paths report the underlying database
+    // error. Skip discovery here so the recovery scan does not duplicate or
+    // obscure that canonical issue.
+    return [];
+  }
+  const occupiedKeys = new Map(
+    [
+      ...params.indexedRecords,
+      ...sqliteEntries.summaries.map((summary) => ({
+        entry: summary.entry,
+        sessionKey: summary.sessionKey,
+      })),
+    ].map((record) => [record.sessionKey, record.entry.sessionId]),
+  );
+  const occupiedSessionIds = new Map(
+    [...occupiedKeys].map(([sessionKey, sessionId]) => [sessionId, sessionKey]),
+  );
+  const recovered: LegacySessionRecord[] = [];
+  const targetOwner = resolveSqliteTargetFromSessionStorePath(params.target.storePath).agentId;
+  const targetAgentId = normalizeAgentId(params.target.agentId);
+  for (const transcriptPath of params.unreferencedPaths) {
+    if (transcriptPath.endsWith(".trajectory.jsonl")) {
+      continue;
+    }
+    const inspection = inspectRecoverableTranscriptFile(transcriptPath);
+    if (inspection.status === "not-session-history") {
+      continue;
+    }
+    if (inspection.status === "malformed") {
+      params.issues.push({
+        code: "unreferenced_jsonl_malformed",
+        message: inspection.message,
+      });
+      continue;
+    }
+    if (!targetOwner) {
+      params.issues.push({
+        code: "unreferenced_history_owner_ambiguous",
+        message: `${transcriptPath}: the legacy store path does not identify an owning agent`,
+      });
+      continue;
+    }
+    if (normalizeAgentId(targetOwner) !== targetAgentId) {
+      params.issues.push({
+        code: "unreferenced_history_owner_mismatch",
+        message: `${transcriptPath}: legacy store owner ${targetOwner} does not match target agent ${params.target.agentId}`,
+      });
+      continue;
+    }
+    const contentSha256 = hashFileSha256Sync(transcriptPath);
+    const sessionKey = buildRecoveredSessionKey({
+      agentId: targetAgentId,
+      contentSha256,
+      sourceSessionId: inspection.sourceSessionId,
+    });
+    const existingSessionId = occupiedKeys.get(sessionKey);
+    let sessionId = inspection.sourceSessionId;
+    let collisionAdjusted = false;
+    const existingKeyForSourceSession = occupiedSessionIds.get(inspection.sourceSessionId);
+    if (existingKeyForSourceSession && existingKeyForSourceSession !== sessionKey) {
+      sessionId = buildRecoveredStorageSessionId({
+        agentId: targetAgentId,
+        contentSha256,
+        sourceSessionId: inspection.sourceSessionId,
+      });
+      collisionAdjusted = true;
+    }
+    if (
+      (existingSessionId && existingSessionId !== sessionId) ||
+      (occupiedSessionIds.has(sessionId) && occupiedSessionIds.get(sessionId) !== sessionKey)
+    ) {
+      params.issues.push({
+        code: "unreferenced_history_identifier_collision",
+        message: `${transcriptPath}: deterministic recovery identity is already occupied`,
+        sessionKey,
+      });
+      continue;
+    }
+    const fallbackUpdatedAt = Math.floor(fs.statSync(transcriptPath).mtimeMs);
+    const updatedAt = inspection.lastTimestampMs ?? fallbackUpdatedAt;
+    const displayId = inspection.sourceSessionId.slice(0, 80);
+    recovered.push({
+      entry: {
+        displayName: `Recovered history ${displayId}`,
+        sessionId,
+        ...(inspection.sessionStartedAtMs !== undefined
+          ? { sessionStartedAt: inspection.sessionStartedAtMs }
+          : {}),
+        updatedAt,
+      },
+      recovered: {
+        collisionAdjusted,
+        contentSha256,
+        sourceSessionId: inspection.sourceSessionId,
+        transcriptHeaderId: inspection.transcriptHeaderId,
+      },
+      sessionKey,
+      transcriptPath,
+    });
+    params.issues.push({
+      code: "unreferenced_history_metadata_reconstructed",
+      message: `${transcriptPath}: created discoverable recovery metadata for legacy session ${inspection.sourceSessionId}`,
+      sessionKey,
+    });
+    occupiedKeys.set(sessionKey, sessionId);
+    occupiedSessionIds.set(sessionId, sessionKey);
+  }
+  return recovered;
+}
+
+function buildRecoveredSessionKey(params: {
+  agentId: string;
+  contentSha256: string;
+  sourceSessionId: string;
+}): string {
+  const sourceSlug =
+    params.sourceSessionId.replace(/[^A-Za-z0-9_.-]+/g, "_").slice(0, 80) || "session";
+  const sourceIdSha256 = createHash("sha256").update(params.sourceSessionId).digest("hex");
+  return `agent:${normalizeAgentId(params.agentId)}:recovered:${sourceSlug}:${sourceIdSha256}:${params.contentSha256}`;
+}
+
+function buildRecoveredStorageSessionId(params: {
+  agentId: string;
+  contentSha256: string;
+  sourceSessionId: string;
+}): string {
+  const digest = createHash("sha256")
+    .update("openclaw-unreferenced-history-v1\0")
+    .update(normalizeAgentId(params.agentId))
+    .update("\0")
+    .update(params.sourceSessionId)
+    .update("\0")
+    .update(params.contentSha256)
+    .digest("hex")
+    .slice(0, 32)
+    .split("");
+  digest[12] = "5";
+  digest[16] = ((Number.parseInt(digest[16] ?? "0", 16) & 0x3) | 0x8).toString(16);
+  const value = digest.join("");
+  return `${value.slice(0, 8)}-${value.slice(8, 12)}-${value.slice(12, 16)}-${value.slice(16, 20)}-${value.slice(20)}`;
 }
 
 function resolveFullyCoveredLegacyStorePaths(
@@ -1306,6 +1501,10 @@ function summarizeDoctorSessionSqliteReport(
       targets: targets.length,
       unreferencedJsonlFiles: targets.reduce(
         (total, target) => total + target.unreferencedJsonlFiles.length,
+        0,
+      ),
+      recoveredUnreferencedHistories: targets.reduce(
+        (total, target) => total + (target.recoveredUnreferencedHistories?.length ?? 0),
         0,
       ),
       validatedEntries: sumTargets(targets, "validatedEntries"),

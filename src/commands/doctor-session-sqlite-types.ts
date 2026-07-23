@@ -13,6 +13,8 @@ const SESSION_SQLITE_WARNING_ISSUE_CODES = new Set([
   "transcript_malformed",
   "transcript_missing",
   "unreferenced_jsonl_archive_failed",
+  "unreferenced_jsonl_malformed",
+  "unreferenced_history_metadata_reconstructed",
 ]);
 
 export function isSessionSqliteMigrationWarning(issue: DoctorSessionSqliteIssue): boolean {
@@ -109,6 +111,17 @@ export type DoctorSessionSqliteTargetReport = {
   sqlitePath: string;
   storePath: string;
   unreferencedJsonlFiles: string[];
+  recoveredUnreferencedHistories?: Array<{
+    collisionAdjusted: boolean;
+    contentSha256: string;
+    metadataReconstructed: true;
+    sessionId: string;
+    sessionKey: string;
+    sourcePath: string;
+    sourceSessionId: string;
+    transcriptHeaderId: string;
+    transcriptEvents: number;
+  }>;
   validatedEntries: number;
   validatedTranscriptEvents: number;
   compact?: DoctorSessionSqliteCompactReport;
@@ -138,6 +151,7 @@ export type DoctorSessionSqliteReport = {
     sqliteEntries: number;
     targets: number;
     unreferencedJsonlFiles: number;
+    recoveredUnreferencedHistories?: number;
     validatedEntries: number;
     validatedTranscriptEvents: number;
   };

@@ -1,5 +1,7 @@
 /** Read-only diagnostic readers used by the session SQLite doctor mode. */
+import { createHash } from "node:crypto";
 import fs from "node:fs";
+import path from "node:path";
 import { TextDecoder } from "node:util";
 import { isRecord } from "@openclaw/normalization-core/record-coerce";
 import { normalizeLoadedFileEntry, type FileEntry } from "../agents/sessions/session-manager.js";
@@ -46,7 +48,37 @@ type TranscriptEventCountResult =
   | { status: "missing" }
   | { status: "malformed"; message: string };
 
+export type RecoverableTranscriptInspection =
+  | {
+      status: "ok";
+      events: number;
+      lastTimestampMs?: number;
+      sessionStartedAtMs?: number;
+      sourceSessionId: string;
+      transcriptHeaderId: string;
+    }
+  | { status: "not-session-history"; message: string }
+  | { status: "malformed"; message: string };
+
 const JSONL_READ_CHUNK_BYTES = 64 * 1024;
+
+/** Computes a file digest with a fixed memory bound for large legacy histories. */
+export function hashFileSha256Sync(filePath: string): string {
+  const descriptor = fs.openSync(filePath, "r");
+  const buffer = Buffer.allocUnsafe(JSONL_READ_CHUNK_BYTES);
+  const hash = createHash("sha256");
+  try {
+    for (;;) {
+      const bytesRead = fs.readSync(descriptor, buffer, 0, buffer.length, null);
+      if (bytesRead === 0) {
+        return hash.digest("hex");
+      }
+      hash.update(buffer.subarray(0, bytesRead));
+    }
+  } finally {
+    fs.closeSync(descriptor);
+  }
+}
 
 export function countTranscriptEventsForPath(
   transcriptPath: string | undefined,
@@ -69,6 +101,73 @@ export function countTranscriptEventsForPath(
   } catch (err) {
     return { status: "malformed", message: String(err) };
   }
+}
+
+/** Strictly validates an unindexed JSONL file before doctor treats it as session history. */
+export function inspectRecoverableTranscriptFile(
+  transcriptPath: string,
+): RecoverableTranscriptInspection {
+  let events = 0;
+  const sourceSessionId = path.basename(transcriptPath, ".jsonl").trim();
+  let transcriptHeaderId: string | undefined;
+  let lastTimestampMs: number | undefined;
+  let sessionStartedAtMs: number | undefined;
+  try {
+    for (const line of iterateJsonlLinesSync(transcriptPath)) {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(line.text) as unknown;
+      } catch (error) {
+        return {
+          status: "malformed",
+          message: `${transcriptPath}:${line.lineNumber}: ${String(error)}`,
+        };
+      }
+      if (!isRecord(parsed)) {
+        return {
+          status: "malformed",
+          message: `${transcriptPath}:${line.lineNumber}: transcript event is not an object`,
+        };
+      }
+      const timestampMs = parseTranscriptTimestampMs(parsed.timestamp);
+      if (events === 0) {
+        const headerSessionId =
+          typeof parsed.id === "string"
+            ? parsed.id.trim()
+            : typeof parsed.sessionId === "string"
+              ? parsed.sessionId.trim()
+              : "";
+        if (parsed.type !== "session" || !headerSessionId) {
+          return {
+            status: "not-session-history",
+            message: `${transcriptPath}: first event is not a session header`,
+          };
+        }
+        transcriptHeaderId = headerSessionId;
+        sessionStartedAtMs = timestampMs;
+      }
+      if (timestampMs !== undefined) {
+        lastTimestampMs = timestampMs;
+      }
+      events += 1;
+    }
+  } catch (error) {
+    return { status: "malformed", message: `${transcriptPath}: ${String(error)}` };
+  }
+  if (!sourceSessionId || !transcriptHeaderId || events === 0) {
+    return {
+      status: "not-session-history",
+      message: `${transcriptPath}: transcript is empty or has no session header`,
+    };
+  }
+  return {
+    status: "ok",
+    events,
+    ...(lastTimestampMs !== undefined ? { lastTimestampMs } : {}),
+    ...(sessionStartedAtMs !== undefined ? { sessionStartedAtMs } : {}),
+    sourceSessionId,
+    transcriptHeaderId,
+  };
 }
 
 export function createTranscriptEventReader(
@@ -344,6 +443,17 @@ function sqliteNumber(value: unknown): number {
     return Number(value);
   }
   return 0;
+}
+
+function parseTranscriptTimestampMs(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
+    return value < 100_000_000_000 ? Math.floor(value * 1000) : Math.floor(value);
+  }
+  if (typeof value !== "string" || !value.trim()) {
+    return undefined;
+  }
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
 }
 
 function parseJsonlLine(line: { final: boolean; lineNumber: number; text: string }): unknown {

@@ -1,4 +1,5 @@
 // Doctor session SQLite tests exercise real temp stores and per-agent SQLite files.
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -6,7 +7,9 @@ import type { DatabaseSync } from "node:sqlite";
 import { expectDefined } from "@openclaw/normalization-core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAutoCleanupTempDirTracker } from "../../test/helpers/temp-dir.js";
+import type { TranscriptEvent } from "../config/sessions/session-accessor.js";
 import {
+  importSqliteSessionRows,
   loadExactSqliteSessionEntry,
   loadSqliteTranscriptEventsSync,
   readSqliteTranscriptStatsSync,
@@ -32,7 +35,7 @@ import {
   restoreSessionSqliteMigrationRun,
   type ActiveSessionSqliteMigrationRun,
 } from "./doctor-session-sqlite-migration-run.js";
-import { resolveTargetSqlitePath } from "./doctor-session-sqlite-readers.js";
+import { hashFileSha256Sync, resolveTargetSqlitePath } from "./doctor-session-sqlite-readers.js";
 import { runDoctorSessionSqlite } from "./doctor-session-sqlite.js";
 
 type SessionSqliteMigrationManifest = ActiveSessionSqliteMigrationRun["manifest"];
@@ -527,6 +530,384 @@ describe("runDoctorSessionSqlite", () => {
         storePath: store.storePath,
       }),
     ).toHaveLength(2);
+  });
+
+  it("recovers valid unreferenced history without overwriting main", async () => {
+    const store = createLegacyStore();
+    const sourceSessionId = "unreferenced-history";
+    writeUnreferencedHistory(store, sourceSessionId, [
+      sessionEvent(sourceSessionId, "2026-01-01T00:00:00.000Z"),
+      messageEvent("u1", null, "user", "first", "2026-01-01T00:00:01.000Z"),
+      messageEvent("a1", "u1", "assistant", "second", "2026-01-01T00:00:02.000Z"),
+      messageEvent("u2", "a1", "user", "third", "2026-01-01T00:00:03.000Z"),
+    ]);
+
+    const report = await runDoctorSessionSqlite({
+      env: store.env,
+      mode: "import",
+      store: store.storePath,
+    });
+
+    const recovered = expectDefined(
+      report.targets[0]?.recoveredUnreferencedHistories?.[0],
+      "recovered history receipt",
+    );
+    expect(recovered).toMatchObject({
+      collisionAdjusted: false,
+      metadataReconstructed: true,
+      sourceSessionId,
+      transcriptEvents: 4,
+    });
+    expect(report.targets[0]?.issues).toEqual([
+      expect.objectContaining({ code: "unreferenced_history_metadata_reconstructed" }),
+    ]);
+    expect(recovered.sessionKey).toMatch(
+      /^agent:main:recovered:unreferenced-history:[a-f0-9]{64}:[a-f0-9]{64}$/,
+    );
+    expect(
+      loadExactSqliteSessionEntry({
+        agentId: "main",
+        sessionKey: recovered.sessionKey,
+        storePath: store.storePath,
+      })?.entry,
+    ).toMatchObject({
+      displayName: `Recovered history ${sourceSessionId}`,
+      sessionId: sourceSessionId,
+      sessionStartedAt: Date.parse("2026-01-01T00:00:00.000Z"),
+      updatedAt: Date.parse("2026-01-01T00:00:03.000Z"),
+    });
+    const events = loadSqliteTranscriptEventsSync({
+      agentId: "main",
+      sessionId: recovered.sessionId,
+      sessionKey: recovered.sessionKey,
+      storePath: store.storePath,
+    });
+    expect(events.map((event) => (event as { id?: string }).id)).toEqual([
+      sourceSessionId,
+      "u1",
+      "a1",
+      "u2",
+    ]);
+    expect(
+      events.flatMap((event) => {
+        const message = (event as { message?: { role?: string } }).message;
+        return message?.role ? [message.role] : [];
+      }),
+    ).toEqual(["user", "assistant", "user"]);
+    expect(
+      loadExactSqliteSessionEntry({
+        agentId: "main",
+        sessionKey: "agent:main:main",
+        storePath: store.storePath,
+      })?.entry.sessionId,
+    ).toBe("session-1");
+    expect(activeProjectionCount(store, recovered.sessionId)).toBe(3);
+  });
+
+  it("recovers multiple unreferenced histories including a large transcript", async () => {
+    const store = createLegacyStore();
+    const largeSessionId = "large-history";
+    const largeEvents: TranscriptEvent[] = [
+      sessionEvent(largeSessionId, "2026-01-02T00:00:00.000Z"),
+    ];
+    let parentId: string | null = null;
+    for (let index = 0; index < 2_000; index += 1) {
+      const id = `large-${index}`;
+      largeEvents.push(
+        messageEvent(
+          id,
+          parentId,
+          index % 2 === 0 ? "user" : "assistant",
+          `message-${index}`,
+          new Date(Date.UTC(2026, 0, 2, 0, 0, index)).toISOString(),
+        ),
+      );
+      parentId = id;
+    }
+    writeUnreferencedHistory(store, largeSessionId, largeEvents);
+    writeUnreferencedHistory(store, "small-history", [
+      sessionEvent("small-history", "2026-01-03T00:00:00.000Z"),
+      messageEvent("small-1", null, "user", "small", "2026-01-03T00:00:01.000Z"),
+    ]);
+
+    const report = await runDoctorSessionSqlite({
+      env: store.env,
+      mode: "import",
+      store: store.storePath,
+    });
+
+    expect(report.totals.recoveredUnreferencedHistories).toBe(2);
+    expect(report.totals.importedTranscriptEvents).toBe(2_005);
+    const receipts = report.targets[0]?.recoveredUnreferencedHistories ?? [];
+    const large = expectDefined(
+      receipts.find((receipt) => receipt.sourceSessionId === largeSessionId),
+      "large recovered history receipt",
+    );
+    expect(large.transcriptEvents).toBe(2_001);
+    expect(
+      readSqliteTranscriptStatsSync({
+        agentId: "main",
+        sessionId: large.sessionId,
+        sessionKey: large.sessionKey,
+        storePath: store.storePath,
+      }).eventCount,
+    ).toBe(2_001);
+    expect(activeProjectionCount(store, large.sessionId)).toBe(2_000);
+  });
+
+  it("hashes large recoverable histories without whole-file reads", () => {
+    const store = createLegacyStore();
+    const transcriptPath = writeUnreferencedHistory(store, "streamed-hash", [
+      sessionEvent("streamed-hash", "2026-01-03T00:00:00.000Z"),
+      messageEvent("streamed-1", null, "user", "preserve", "2026-01-03T00:00:01.000Z"),
+    ]);
+    const expected = createHash("sha256").update(fs.readFileSync(transcriptPath)).digest("hex");
+    const readFile = vi.spyOn(fs, "readFileSync").mockImplementation(() => {
+      throw new Error("whole-file reads are forbidden for recovery hashing");
+    });
+    try {
+      expect(hashFileSha256Sync(transcriptPath)).toBe(expected);
+    } finally {
+      readFile.mockRestore();
+    }
+  });
+
+  it("does not fabricate a session start from a later transcript event", async () => {
+    const store = createLegacyStore();
+    const sourceSessionId = "missing-header-timestamp";
+    writeUnreferencedHistory(store, sourceSessionId, [
+      { type: "session", id: sourceSessionId } as TranscriptEvent,
+      messageEvent("later-1", null, "user", "preserve", "2026-01-03T00:00:01.000Z"),
+    ]);
+
+    const report = await runDoctorSessionSqlite({
+      env: store.env,
+      mode: "import",
+      store: store.storePath,
+    });
+    const recovered = expectDefined(
+      report.targets[0]?.recoveredUnreferencedHistories?.[0],
+      "recovered history receipt",
+    );
+    const entry = loadExactSqliteSessionEntry({
+      agentId: "main",
+      sessionKey: recovered.sessionKey,
+      storePath: store.storePath,
+    })?.entry;
+    expect(entry?.sessionStartedAt).toBeUndefined();
+    expect(entry?.updatedAt).toBe(Date.parse("2026-01-03T00:00:01.000Z"));
+  });
+
+  it("blocks unreferenced recovery when the target and canonical store owner disagree", async () => {
+    const store = createLegacyStore({ agentDirName: "work" });
+    writeUnreferencedHistory(store, "wrong-owner", [
+      sessionEvent("wrong-owner", "2026-01-03T00:00:00.000Z"),
+      messageEvent("owner-1", null, "user", "preserve", "2026-01-03T00:00:01.000Z"),
+    ]);
+
+    const report = await runDoctorSessionSqlite({
+      cfg: { session: { store: store.storePath } },
+      env: store.env,
+      mode: "dry-run",
+    });
+
+    expect(report.targets[0]?.agentId).toBe("main");
+    expect(report.targets[0]?.recoveredUnreferencedHistories).toEqual([]);
+    expect(report.targets[0]?.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "unreferenced_history_owner_mismatch" }),
+      ]),
+    );
+  });
+
+  it("uses a deterministic alternate storage id when a recovered id collides", async () => {
+    const store = createLegacyStore({ entryOverrides: { sessionId: "occupied-session" } });
+    writeUnreferencedHistory(store, "occupied-session", [
+      sessionEvent("recovered-header", "2026-01-04T00:00:00.000Z"),
+      messageEvent("collision-1", null, "user", "preserve", "2026-01-04T00:00:01.000Z"),
+    ]);
+
+    const report = await runDoctorSessionSqlite({
+      env: store.env,
+      mode: "import",
+      store: store.storePath,
+    });
+
+    const recovered = expectDefined(
+      report.targets[0]?.recoveredUnreferencedHistories?.[0],
+      "collision-adjusted recovered history receipt",
+    );
+    expect(recovered).toMatchObject({
+      collisionAdjusted: true,
+      sourceSessionId: "occupied-session",
+      transcriptHeaderId: "recovered-header",
+    });
+    expect(recovered.sessionId).not.toBe("occupied-session");
+    expect(recovered.sessionId).toMatch(/^[a-f0-9-]{36}$/);
+    expect(
+      loadExactSqliteSessionEntry({
+        agentId: "main",
+        sessionKey: "agent:main:main",
+        storePath: store.storePath,
+      })?.entry.sessionId,
+    ).toBe("occupied-session");
+    expect(
+      loadSqliteTranscriptEventsSync({
+        agentId: "main",
+        sessionId: recovered.sessionId,
+        sessionKey: recovered.sessionKey,
+        storePath: store.storePath,
+      }),
+    ).toHaveLength(2);
+  });
+
+  it("keeps distinct source identifiers discoverable when their slugs and content match", async () => {
+    const store = createLegacyStore();
+    const sharedEvents = [
+      sessionEvent("shared-header", "2026-01-04T00:00:00.000Z"),
+      messageEvent("shared-1", null, "user", "preserve", "2026-01-04T00:00:01.000Z"),
+    ];
+    writeUnreferencedHistory(store, "same:source", sharedEvents);
+    writeUnreferencedHistory(store, "same?source", sharedEvents);
+
+    const report = await runDoctorSessionSqlite({
+      env: store.env,
+      mode: "import",
+      store: store.storePath,
+    });
+    const recovered = report.targets[0]?.recoveredUnreferencedHistories ?? [];
+
+    expect(recovered).toHaveLength(2);
+    expect(new Set(recovered.map((receipt) => receipt.sessionKey)).size).toBe(2);
+    expect(recovered.map((receipt) => receipt.sourceSessionId).toSorted()).toEqual([
+      "same:source",
+      "same?source",
+    ]);
+    expect(
+      recovered.every((receipt) =>
+        /^agent:main:recovered:same_source:[a-f0-9]{64}:[a-f0-9]{64}$/.test(receipt.sessionKey),
+      ),
+    ).toBe(true);
+  });
+
+  it("reimports a recovered history idempotently", async () => {
+    const store = createLegacyStore();
+    const sourceSessionId = "repeat-history";
+    const sourcePath = writeUnreferencedHistory(store, sourceSessionId, [
+      sessionEvent(sourceSessionId, "2026-01-05T00:00:00.000Z"),
+      messageEvent("repeat-1", null, "user", "once", "2026-01-05T00:00:01.000Z"),
+    ]);
+    const sourceBytes = fs.readFileSync(sourcePath);
+
+    const first = await runDoctorSessionSqlite({
+      env: store.env,
+      mode: "import",
+      store: store.storePath,
+    });
+    const firstReceipt = expectDefined(
+      first.targets[0]?.recoveredUnreferencedHistories?.[0],
+      "first recovered history receipt",
+    );
+    fs.mkdirSync(store.sessionDir, { recursive: true });
+    fs.writeFileSync(store.storePath, "{}\n", { mode: 0o600 });
+    fs.writeFileSync(sourcePath, sourceBytes, { mode: 0o600 });
+
+    const second = await runDoctorSessionSqlite({
+      env: store.env,
+      mode: "import",
+      store: store.storePath,
+    });
+    const secondReceipt = expectDefined(
+      second.targets[0]?.recoveredUnreferencedHistories?.[0],
+      "second recovered history receipt",
+    );
+    expect(secondReceipt).toMatchObject({
+      sessionId: firstReceipt.sessionId,
+      sessionKey: firstReceipt.sessionKey,
+    });
+    expect(
+      readSqliteTranscriptStatsSync({
+        agentId: "main",
+        sessionId: firstReceipt.sessionId,
+        sessionKey: firstReceipt.sessionKey,
+        storePath: store.storePath,
+      }).eventCount,
+    ).toBe(2);
+  });
+
+  it("reports malformed and partial unreferenced histories without importing them", async () => {
+    const store = createLegacyStore();
+    fs.writeFileSync(
+      path.join(store.sessionDir, "malformed.jsonl"),
+      '{"type":"session","id":"malformed"}\n{"type":"message"',
+      { mode: 0o600 },
+    );
+    fs.writeFileSync(path.join(store.sessionDir, "empty.jsonl"), "\n", { mode: 0o600 });
+
+    const report = await runDoctorSessionSqlite({
+      env: store.env,
+      mode: "import",
+      store: store.storePath,
+    });
+
+    expect(report.targets[0]?.recoveredUnreferencedHistories).toEqual([]);
+    expect(report.targets[0]?.issues).toEqual([
+      expect.objectContaining({ code: "unreferenced_jsonl_malformed" }),
+    ]);
+    expect(report.totals.sqliteEntries).toBe(1);
+  });
+
+  it("completes an interrupted recovered-history import without duplicates", async () => {
+    const store = createLegacyStore();
+    const sourceSessionId = "interrupted-history";
+    const events = [
+      sessionEvent(sourceSessionId, "2026-01-06T00:00:00.000Z"),
+      messageEvent("partial-1", null, "user", "one", "2026-01-06T00:00:01.000Z"),
+      messageEvent("partial-2", "partial-1", "assistant", "two", "2026-01-06T00:00:02.000Z"),
+    ];
+    writeUnreferencedHistory(store, sourceSessionId, events);
+    const dryRun = await runDoctorSessionSqlite({
+      env: store.env,
+      mode: "dry-run",
+      store: store.storePath,
+    });
+    const recovered = expectDefined(
+      dryRun.targets[0]?.recoveredUnreferencedHistories?.[0],
+      "interrupted recovered history receipt",
+    );
+    await importSqliteSessionRows({
+      agentId: "main",
+      entry: {
+        displayName: `Recovered history ${sourceSessionId}`,
+        sessionId: recovered.sessionId,
+        updatedAt: Date.parse("2026-01-06T00:00:01.000Z"),
+      },
+      env: store.env,
+      readTranscriptEvents: (append) => {
+        append(events[0]);
+        append(events[1]);
+      },
+      sessionKey: recovered.sessionKey,
+      storePath: store.storePath,
+    });
+
+    const report = await runDoctorSessionSqlite({
+      env: store.env,
+      mode: "import",
+      store: store.storePath,
+    });
+
+    expect(report.targets[0]?.issues).toEqual([
+      expect.objectContaining({ code: "unreferenced_history_metadata_reconstructed" }),
+    ]);
+    expect(
+      loadSqliteTranscriptEventsSync({
+        agentId: "main",
+        sessionId: recovered.sessionId,
+        sessionKey: recovered.sessionKey,
+        storePath: store.storePath,
+      }).map((event) => (event as { id?: string }).id),
+    ).toEqual([sourceSessionId, "partial-1", "partial-2"]);
   });
 
   it("archives legacy stores with valid sessions and invalid cron stubs without failing", async () => {
@@ -2749,6 +3130,60 @@ function createUnsafeIndexDrift(sqlitePath: string): void {
         (schemaVersionRow ? Object.values(schemaVersionRow)[0] : undefined),
     );
     database.exec(`PRAGMA schema_version = ${schemaVersion + 1};`);
+  } finally {
+    database.close();
+  }
+}
+
+function sessionEvent(sessionId: string, timestamp: string): TranscriptEvent {
+  return { type: "session", id: sessionId, timestamp } as TranscriptEvent;
+}
+
+function messageEvent(
+  id: string,
+  parentId: string | null,
+  role: "assistant" | "user",
+  text: string,
+  timestamp: string,
+): TranscriptEvent {
+  return {
+    type: "message",
+    id,
+    parentId,
+    timestamp,
+    message: { role, content: [{ type: "text", text }] },
+  } as TranscriptEvent;
+}
+
+function writeUnreferencedHistory(
+  store: TestStore,
+  sourceSessionId: string,
+  events: readonly TranscriptEvent[],
+): string {
+  const transcriptPath = path.join(store.sessionDir, `${sourceSessionId}.jsonl`);
+  fs.writeFileSync(transcriptPath, `${events.map((event) => JSON.stringify(event)).join("\n")}\n`, {
+    mode: 0o600,
+  });
+  return transcriptPath;
+}
+
+function activeProjectionCount(store: TestStore, sessionId: string): number {
+  closeOpenClawAgentDatabasesForTest();
+  const sqlite = nodeSqlite.requireNodeSqlite();
+  const database = new sqlite.DatabaseSync(
+    resolveOpenClawAgentSqlitePath({
+      agentId: "main",
+      env: store.env,
+    }),
+    { readOnly: true },
+  );
+  try {
+    const row = database
+      .prepare(
+        "SELECT COUNT(*) AS count FROM session_transcript_active_events WHERE session_id = ?",
+      )
+      .get(sessionId) as { count: number };
+    return row.count;
   } finally {
     database.close();
   }
