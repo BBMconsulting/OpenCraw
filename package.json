@@ -334,6 +334,7 @@
     "!docs/**/*.jpg",
     "!docs/**/*.png",
     "src/agents/templates/",
+    "scripts/create-validation-session.mjs",
     "scripts/crabbox-wrapper-providers.mjs",
     "scripts/crabbox-wrapper.mjs",
     "scripts/testbox-lease-freshness.mjs",
@@ -347,6 +348,8 @@
     "scripts/lib/official-external-provider-catalog.json",
     "scripts/lib/package-dist-imports.mjs",
     "scripts/lib/recommended-tool-installs.json",
+    "scripts/lib/validation-session.d.mts",
+    "scripts/lib/validation-session.mjs",
     "scripts/postinstall-bundled-plugins.mjs",
     "scripts/windows-cmd-helpers.mjs"
   ],
@@ -1879,6 +1882,7 @@
     "android:i18n:check": "node --import tsx scripts/android-app-i18n.ts check",
     "apple:i18n:check": "node --import tsx scripts/apple-app-i18n.ts check",
     "ui:install": "node scripts/ui.js install",
+    "validation:session": "node scripts/create-validation-session.mjs",
     "verify": "node scripts/verify.mjs"
   },
   "dependencies": {
