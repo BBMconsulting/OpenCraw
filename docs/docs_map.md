@@ -8833,6 +8833,25 @@ Do not edit it by hand; run `pnpm docs:map:gen`.
   - H2: Evidence to keep
   - H2: Workflow files
 
+## reference/github-actions-policy.md
+
+- Route: /reference/github-actions-policy
+- Headings:
+  - H1: OpenCraw GitHub Actions policy
+  - H2: Operating rules
+  - H3: Automatic core validation
+  - H3: Manual and release-only automation
+  - H3: Schedules, repository events, and reusable workflows
+  - H3: Secrets, permissions, cost, and notification noise
+  - H2: Complete workflow reconciliation matrix
+  - H3: A. Automatic core validation
+  - H3: B. Manual or release-only
+  - H3: C. Reusable `workflow_call` components
+  - H3: D. Removed from the active workflow set
+  - H2: Removed schedules
+  - H2: Failure diagnosis that established this policy
+  - H2: Validation and upstream reconciliation
+
 ## reference/memory-config.md
 
 - Route: /reference/memory-config
@@ -8873,6 +8892,7 @@ Do not edit it by hand; run `pnpm docs:map:gen`.
 - Route: /reference/opencraw-fork-reconciliation
 - Headings:
   - H1: OpenCraw Fork Reconciliation Record
+  - H2: 2026-07-23 GitHub Actions policy reconciliation
   - H2: 2026-07-23 session integrity correction
   - H3: Defect and continuing requirements
   - H3: Downstream resolution

@@ -4,6 +4,21 @@ This record captures reusable source-integration decisions for the OpenCraw
 fork. Instance-specific paths, credentials, service state, backups, and
 validation session identifiers remain in the private instance log.
 
+## 2026-07-23 GitHub Actions policy reconciliation
+
+OpenCraw now maintains a fork-specific Actions policy. Only compact OpenCraw CI
+and path-scoped, self-contained documentation validation run automatically.
+Inherited release, native-platform, live-service, agent, cache, and broad
+security workflows are manual or reusable-only. Upstream organization bots
+without a safe fork-owned purpose were removed from the active workflow set,
+and all schedules were removed.
+
+The complete classification, dependency/cost inventory, removed schedules,
+failure diagnosis, validation requirements, and future upstream reconciliation
+rules are documented in [OpenCraw GitHub Actions policy](/reference/github-actions-policy).
+Future upstream merges must preserve the operating class and trigger policy
+before accepting upstream job-body changes.
+
 ## 2026-07-23 session integrity correction
 
 ### Defect and continuing requirements

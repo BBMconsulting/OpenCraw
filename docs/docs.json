@@ -2000,6 +2000,7 @@
                   "maturity/taxonomy",
                   "reference/RELEASING",
                   "reference/full-release-validation",
+                  "reference/github-actions-policy",
                   "reference/release-performance-sweep",
                   "reference/test",
                   "ci",

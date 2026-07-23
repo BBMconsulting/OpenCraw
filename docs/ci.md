@@ -5,24 +5,30 @@ read_when:
   - You need to understand why a CI job did or did not run
   - You are debugging a failing GitHub Actions check
   - You are coordinating a release validation run or rerun
-  - You are changing ClawSweeper dispatch or GitHub activity forwarding
+  - You are changing OpenCraw GitHub Actions policy
 ---
 
-OpenClaw CI runs on pushes to `main` (Markdown and `docs/**` paths are ignored
-at the trigger), on every non-draft pull request, and on manual dispatch.
-Canonical `main` pushes are single-flight: the `CI` concurrency group lets one
-complete integration cycle run while GitHub keeps only the newest pending push.
-New merges replace that pending run instead of canceling work that already
-registered a Blacksmith matrix. Pull requests still cancel superseded heads,
-and manual dispatches use isolated groups. `preflight` classifies the diff and
-turns expensive lanes off when only unrelated areas changed. Manual
-`workflow_dispatch` runs intentionally bypass smart scoping and fan out the
-full graph for release candidates and broad validation. Android lanes stay
-opt-in through `include_android` (or the `release_gate` input). Release-only
-plugin coverage lives in the separate
+OpenCraw automatically runs the four-job `OpenCraw CI` workflow on
+non-documentation pushes to `main` and relevant pull request updates. It
+validates frozen dependencies, formatting, lint, production types, focused
+tests, production build output, secrets, dependency security, and workflow
+security. The self-contained `Docs` workflow owns Markdown and documentation
+tooling changes.
+
+The broad upstream graph in `ci.yml` is retained as `OpenCraw Full CI
+(Manual)`. It runs only by explicit dispatch. The graph below documents that
+manual full-suite and release interface; its references to push/PR scope
+describe the retained upstream routing logic, not active OpenCraw triggers.
+Manual dispatches use isolated groups and bypass smart scoping for broad
+validation. Android stays opt-in through `include_android` or `release_gate`.
+Release-only plugin coverage lives in the separate
 [`Plugin Prerelease`](#plugin-prerelease) workflow and only runs from
 [`Full Release Validation`](#full-release-validation) or an explicit manual
 dispatch.
+
+See [OpenCraw GitHub Actions policy](/reference/github-actions-policy) for the
+complete workflow classification, trigger policy, dependencies, and upstream
+reconciliation rules.
 
 ## Pipeline overview
 
@@ -50,10 +56,10 @@ dispatch.
 | `ios-build`                        | Xcode project generation plus the iOS app simulator build                                                                                                                                                             | iOS app, shared app kit, or Swabble changes    |
 | `android`                          | Android unit tests for both flavors plus one debug APK build                                                                                                                                                          | Android-relevant changes                       |
 | `openclaw/ci-gate`                 | Final aggregate: requires preflight and security; accepts skips only for manifest-disabled downstream lanes                                                                                                           | Every non-draft CI run                         |
-| `test-performance-agent`           | Separate workflow: daily Codex slow-test optimization after trusted activity                                                                                                                                          | Main CI success or manual dispatch             |
-| `openclaw-performance`             | Separate workflow: daily/on-demand Kova runtime performance reports with mock-provider, deep-profile, and GPT 5.6 live lanes                                                                                          | Scheduled and manual dispatch                  |
+| `test-performance-agent`           | Separate workflow: Codex slow-test optimization                                                                                                                                                                       | Manual dispatch only                           |
+| `openclaw-performance`             | Separate workflow: Kova runtime performance reports with mock-provider, deep-profile, and GPT 5.6 live lanes                                                                                                          | Manual dispatch only                           |
 
-Standalone Periphery workflows enforce zero dead-code findings for the iOS and macOS apps. The shared OpenClawKit workflow scans both consumers in parallel and reports a declaration only when Periphery emits the same Swift USR from both builds. Its generated `OpenClawProtocol/GatewayModels.swift` schema contract is retained as generator-owned code rather than treated as app-local dead code.
+Manual Periphery workflows enforce zero dead-code findings for the iOS and macOS apps. The shared OpenClawKit workflow scans both consumers in parallel and reports a declaration only when Periphery emits the same Swift USR from both builds. Its generated `OpenClawProtocol/GatewayModels.swift` schema contract is retained as generator-owned code rather than treated as app-local dead code.
 
 ## Fail-fast order
 
@@ -78,29 +84,25 @@ Use `pnpm ci:timings`, `pnpm ci:timings:recent`, or `node scripts/ci-run-timings
 
 ## PR context and evidence
 
-External contributor PRs run a PR context and evidence gate from
-`.github/workflows/real-behavior-proof.yml`. The workflow checks out the
-trusted workflow revision (`github.workflow_sha`) and evaluates the PR body
-only; it does not execute code from the contributor branch.
-
-The gate applies to PR authors who are not repository owners, members,
-collaborators, or bots. It passes when the PR body contains authored
-`What Problem This Solves` and `Evidence` sections. Evidence can be a focused
-test, CI result, screenshot, recording, terminal output, live observation,
-redacted log, or artifact link. The body provides intent and useful validation;
-reviewers inspect the code, tests, and CI to assess correctness.
-
-When the check fails, update the PR body instead of pushing another code commit.
+OpenCraw does not activate the upstream App-owned
+`real-behavior-proof.yml` contributor-policy workflow. It depends on upstream
+organization identity and policy. Pull request evidence remains a review
+concern rather than an automatic App check.
 
 ## Scope and routing
 
 Scope logic lives in `scripts/ci-changed-scope.mjs` and is covered by unit tests in `src/scripts/ci-changed-scope.test.ts`. Manual dispatch skips changed-scope detection and makes the preflight manifest act as if every scoped area changed.
 
-Separate iOS and macOS Periphery workflows enforce a zero-findings dead-code policy. Each runs only when a non-draft pull request touches its native scan scope, or when manually dispatched.
+Separate iOS and macOS Periphery workflows enforce a zero-findings dead-code
+policy when manually dispatched.
 
-- **CI workflow edits** validate the Node CI graph, workflow linting, and the Windows lane (`ci.yml` executes it), but do not force iOS, Android, or macOS native builds by themselves; those platform lanes stay scoped to platform source changes.
-- **Workflow Sanity** runs `actionlint`, `zizmor` over all workflow YAML files, the composite-action interpolation guard, and the conflict-marker guard. The PR-scoped `security-fast` job also runs `zizmor` over changed workflow files so workflow security findings fail early in the main CI graph.
-- **Docs on `main` pushes** are checked by the standalone `Docs` workflow with the same ClawHub docs mirror used by CI, so mixed code+docs pushes do not also queue the CI `check-docs` shard. Pull requests and manual CI still run `check-docs` from CI when docs changed.
+- **CI workflow edits** automatically run OpenCraw CI, including `actionlint`,
+  `zizmor`, repository workflow guards, secret scanning, and the fork-policy
+  integration test. Native platform lanes remain manual.
+- **Workflow Sanity** retains the broader generated-baseline checks as a manual
+  workflow. OpenCraw CI owns automatic workflow security.
+- **Documentation changes** run the standalone, self-contained `Docs` workflow
+  on pushes and pull requests. It uses only the OpenCraw checkout.
 - **TUI PTY** runs in the `checks-node-core-runtime-tui-pty` Linux Node shard for TUI changes. The shard runs `test/vitest/vitest.tui-pty.config.ts` with `OPENCLAW_TUI_PTY_INCLUDE_LOCAL=1`, so it covers both the deterministic `TuiBackend` fixture lane and the slower `tui --local` smoke that mocks only the external model endpoint.
 - **CI routing-only edits, the small set of core-test fixtures the fast task runs directly, and narrow plugin contract helper edits** use a fast Node-only manifest path: `preflight`, `security-fast`, and only the fast lanes the change touches — a single `checks-fast-core` CI-routing task, the two plugin contract shards, or both. That path skips build artifacts, Node 22 compatibility, channel contracts, full core shards, bundled-plugin shards, and additional guard matrices.
 - **Windows Node checks** are scoped to Windows-specific process/path wrappers, npm/pnpm/UI runner helpers, package manager config, and the CI workflow surfaces that execute that lane; unrelated source, plugin, install-smoke, and test-only changes stay on the Linux Node lanes.
@@ -119,7 +121,7 @@ The slowest Node test families are split or balanced so each job stays small wit
 - Trusted Linux Node jobs also bind the pnpm store and `node_modules` from one protected dependency disk per supported Node line. Package manifests, install settings, runner platform, and the exact Node patch stay out of the disk key; an exact runtime and install-input fingerprint decides whether a job reuses the tree or reinstalls and refreshes the same disk. Manifests are canonicalized before hashing. The audited direct root hooks retain only pnpm's install lifecycle scripts, so formatting and ordinary test/build script edits keep the warm dependency tree; unaudited lifecycle-hook drift fails closed until its source inputs join the fingerprint contract. Dependency, package-manager, hook-source, and lockfile changes always invalidate the snapshot. A matching fingerprint is necessary but not sufficient: setup also checks the importer archive and manifest checksums, then verifies registry-backed lockfile dependencies retained by postinstall against the package manifests Node resolves from their importers. Missing or stale importer content falls back to a fresh install instead of serving the root hoist. A pull request whose read-only snapshot is unusable detaches the workspace bind and installs into runner-local storage, avoiding slow writes to a clone it cannot publish. Sticky cold installs disable pnpm's inner fetch retries and make up to three bounded full-install attempts from the progressively warmed store; a timeout remains a failure. After a content-validated restore or frozen-lockfile install, setup disables pnpm's redundant pre-run dependency check: the repository intentionally prunes plugin-local `node_modules`, which pnpm otherwise treats as stale and repairs through unsafe concurrent implicit installs during shard fanout. Canonical main preflight is the sole writer and measures the store on every refresh, running `pnpm store prune` only after retired package versions push it above 8 GiB. Blacksmith snapshot publication is asynchronous even after a writer job completes, so the first run after a fresh key or fingerprint can remain cold; later content-validated exact-marker restores are the rollout proof. Required CI jobs and pull requests get disposable clones, so dependency changes do not create new disks, competing snapshots, or a cache lock that can cancel builds.
 - Node shard and build-artifact jobs also restore Node's portable on-disk compile cache through immutable Actions caches. Independent `test` and `build` namespaces prevent their writers from replacing each other's archives: the scheduled test warmer owns the protected test seed, while `build-artifacts` may publish at most one protected build archive per UTC day from trusted `main` pushes. PR and ordinary test jobs only read protected snapshots, so feature-branch bytecode never enters the shared seed and PR traffic creates no cache archives. This reuses V8 bytecode for Node-loaded orchestration, build tooling, and external dependencies across different checkout paths, including when only part of the source graph changes. Vitest child processes disable an inherited compile cache because coverage can be enabled inside dynamic configs and V8 coverage can lose source-position precision when scripts are deserialized from bytecode.
 - The build-artifact job also persists content-fingerprinted `build-all` step outputs. CI's self-built plugin SDK declarations hash the complete repository-owned TypeScript/JSON source graph, exclude installed and generated directories, and restore both flat declarations and package bridges after `tsdown` clears `dist`. Documentation, workflow, plugin, and other changes outside that graph can reuse the declaration snapshot; source changes rebuild it before the export gate runs.
-- Full declaration builds split `tsdown` into AI, workspace-package, and unified groups. Each group caches declarations only, then still rebuilds runtime JavaScript before restoring those declarations. Core or plugin changes therefore invalidate only the large unified graph, while workspace-package changes conservatively invalidate every dependent declaration group. Public full builds generally use an immutable Actions cache; coarse restore keys seed partial changes, per-group content fingerprints reject stale data, and GitHub's cache quota evicts old generations. The weekly Node 22 lane instead publishes a 14-day artifact after successful `main` runs and restores only artifacts whose immutable producer identity resolves to that workflow on `main`, avoiding quota churn without allowing PR code to write a shared cache. Private-QA declarations are never persisted in Actions caches because cache namespaces are not confidentiality boundaries.
+- Full declaration builds split `tsdown` into AI, workspace-package, and unified groups. Each group caches declarations only, then still rebuilds runtime JavaScript before restoring those declarations. Core or plugin changes therefore invalidate only the large unified graph, while workspace-package changes conservatively invalidate every dependent declaration group. Public full builds generally use an immutable Actions cache; coarse restore keys seed partial changes, per-group content fingerprints reject stale data, and GitHub's cache quota evicts old generations. The manual Node 22 lane may publish a 14-day artifact after a successful explicit run. Private-QA declarations are never persisted in Actions caches because cache namespaces are not confidentiality boundaries.
 - `check-additional-*` stripes the supplemental boundary guard list (`scripts/run-additional-boundary-checks.mjs`) into one prompt-heavy shard (`check-additional-boundaries-a`, which includes the Codex prompt snapshot drift check) and one combined shard for the remaining stripes (`check-additional-boundaries-bcd`), each running independent guards concurrently and printing per-check timings. Package-boundary compile/canary work stays together, and runtime topology architecture runs separately from the gateway watch coverage embedded in `build-artifacts`.
 - On the 32-vCPU self-hosted build runner, Gateway watch, channel tests, and the core support-boundary shard start together inside `build-artifacts` after `dist/` and `dist-runtime/` are already built. GitHub-hosted fallback runs keep Gateway watch serial so low-core contention cannot consume its readiness deadline.
 
@@ -137,20 +139,10 @@ The `check-dependencies` shard runs production Knip dependency, unused-file, and
 
 ## ClawSweeper activity forwarding
 
-`.github/workflows/clawsweeper-dispatch.yml` is the target-side bridge from OpenClaw repository activity into ClawSweeper. It does not check out or execute untrusted pull request code. The workflow creates a GitHub App token from `CLAWSWEEPER_APP_PRIVATE_KEY`, then dispatches compact `repository_dispatch` payloads to `openclaw/clawsweeper`.
-
-The workflow has four lanes:
-
-- `clawsweeper_item` for exact issue and pull request review requests;
-- `clawsweeper_comment` for explicit ClawSweeper commands in issue comments;
-- `clawsweeper_commit_review` for commit-level review requests on `main` pushes;
-- `github_activity` for general GitHub activity that the ClawSweeper agent may inspect.
-
-The `github_activity` lane forwards normalized metadata only: event type, action, actor, repository, item number, URL, title, state, and short excerpts for comments or reviews when present. It intentionally avoids forwarding the full webhook body. The receiving workflow in `openclaw/clawsweeper` is `.github/workflows/github-activity.yml`, which posts the normalized event to the OpenClaw Gateway hook for the ClawSweeper agent.
-
-General activity is observation, not delivery-by-default. The ClawSweeper agent receives the Discord target in its prompt and should post to `#clawsweeper` only when the event is surprising, actionable, risky, or operationally useful. Routine opens, edits, bot churn, duplicate webhook noise, and normal review traffic should result in `NO_REPLY`.
-
-Treat GitHub titles, comments, bodies, review text, branch names, and commit messages as untrusted data throughout this path. They are input for summarization and triage, not instructions for the workflow or agent runtime.
+OpenCraw removes `clawsweeper-dispatch.yml` from its active workflow set. The
+workflow forwards repository activity to an upstream external receiver using
+an organization GitHub App identity that is not part of OpenCraw's independent
+validation or current operations.
 
 ## Manual dispatches
 
@@ -629,11 +621,17 @@ Quality stays separate from security so quality findings can be scheduled, measu
 
 ### Docs Agent
 
-The `Docs Agent` workflow is an event-driven Codex maintenance lane for keeping existing docs aligned with recently landed changes. It has no pure schedule: a successful non-bot push CI run on `main` can trigger it, and manual dispatch can run it directly. Workflow-run invocations skip when `main` has moved on or when another non-skipped Docs Agent run was created in the last hour. When it runs, it reviews the commit range from the previous non-skipped Docs Agent source SHA to current `main`, so one hourly run can cover all main changes accumulated since the last docs pass.
+The `Docs Agent` workflow is a manual Codex maintenance lane for aligning
+existing docs with landed changes. It requires explicit dispatch and its
+configured model credential.
 
 ### Test Performance Agent
 
-The `Test Performance Agent` workflow is an event-driven Codex maintenance lane for slow tests. It has no pure schedule: a successful non-bot push CI run on `main` can trigger it, but it skips if another workflow-run invocation already ran or is running that UTC day. Manual dispatch bypasses that daily activity gate. The lane builds a full-suite grouped Vitest performance report, lets Codex make only small coverage-preserving test performance fixes instead of broad refactors, then reruns the full-suite report and rejects changes that reduce the passing baseline test count. The grouped report records per-config wall time and max RSS on Linux and macOS, so the before/after comparison surfaces test memory deltas beside duration deltas. If the baseline has failing tests, Codex may fix only obvious failures and the after-agent full-suite report must pass before anything is committed. When `main` advances before the bot push lands, the lane rebases the validated patch, reruns `pnpm check:changed`, and retries the push; conflicting stale patches are skipped. It uses GitHub-hosted Ubuntu so the Codex action can keep the same drop-sudo safety posture as the docs agent.
+The `Test Performance Agent` workflow is a manual Codex maintenance lane for
+slow tests. It builds a full-suite grouped report, permits only small
+coverage-preserving optimizations, reruns the suite, and rejects reduced
+passing-test counts. It requires explicit dispatch and its configured model
+credential.
 
 ### Duplicate PRs After Merge
 
