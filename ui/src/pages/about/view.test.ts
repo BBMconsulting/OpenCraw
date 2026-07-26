@@ -13,6 +13,7 @@ const BUILT_AT = "2026-07-10T12:34:56.000Z";
 
 function createProps(overrides: Partial<AboutProps> = {}): AboutProps {
   return {
+    basePath: "",
     buildInfo: {
       version: "2026.7.10",
       commit: COMMIT,
@@ -25,8 +26,8 @@ function createProps(overrides: Partial<AboutProps> = {}): AboutProps {
     gatewayVersion: "2026.7.9",
     copyState: "idle",
     onCopyCommit: vi.fn(),
-    clawdWaving: false,
-    onPokeClawd: vi.fn(),
+    crawCrawGreeting: false,
+    onGreetCrawCraw: vi.fn(),
     ...overrides,
   };
 }
@@ -37,26 +38,28 @@ describe("renderAbout", () => {
     await i18n.setLocale("en");
   });
 
-  it("renders the hero with Clawd, identity, community links, and license", () => {
-    const onPokeClawd = vi.fn();
+  it("renders the hero with CrawCraw, identity, upstream links, and license", () => {
+    const onGreetCrawCraw = vi.fn();
     const container = document.createElement("div");
-    render(renderAbout(createProps({ onPokeClawd })), container);
+    render(renderAbout(createProps({ onGreetCrawCraw })), container);
 
     const hero = container.querySelector(".about-hero");
-    expect(hero?.querySelector(".about-hero__name")?.textContent).toBe("OpenClaw");
+    expect(hero?.querySelector(".about-hero__name")?.textContent).toBe("OpenCraw");
     expect(hero?.querySelector(".about-hero__version")?.textContent).toBe("v2026.7.10");
-    expect(hero?.querySelector(".about-hero__clawd svg")).not.toBeNull();
+    expect(hero?.querySelector(".about-hero__crawcraw img")?.getAttribute("src")).toContain(
+      "/opencraw-mark.png",
+    );
 
-    const clawd = hero?.querySelector<HTMLButtonElement>(".about-hero__clawd");
-    expect(clawd?.getAttribute("aria-label")).toBe("Wave hello to Clawd");
-    clawd?.click();
-    expect(onPokeClawd).toHaveBeenCalledOnce();
+    const crawCraw = hero?.querySelector<HTMLButtonElement>(".about-hero__crawcraw");
+    expect(crawCraw?.getAttribute("aria-label")).toBe("Greet CrawCraw");
+    crawCraw?.click();
+    expect(onGreetCrawCraw).toHaveBeenCalledOnce();
 
     const links = Array.from(hero?.querySelectorAll<HTMLAnchorElement>(".about-hero__link") ?? []);
     expect(links.map((link) => link.getAttribute("href"))).toEqual([
       "https://openclaw.ai",
       "https://docs.openclaw.ai",
-      "https://github.com/openclaw/openclaw",
+      "https://github.com/Branded-Business-Models/OpenCraw",
       "https://discord.gg/clawd",
       "https://x.com/openclaw",
       "https://docs.openclaw.ai/releases",
@@ -68,15 +71,16 @@ describe("renderAbout", () => {
     }
 
     expect(container.querySelector(".about-footer")?.textContent).toContain("MIT License");
+    expect(container.querySelector(".about-footer")?.textContent).toContain("based on OpenClaw");
   });
 
-  it("marks the hero as waving only while a poke is active", () => {
+  it("marks the hero as greeting only while the interaction is active", () => {
     const container = document.createElement("div");
-    render(renderAbout(createProps({ clawdWaving: true })), container);
-    expect(container.querySelector(".about-hero__clawd--wave")).not.toBeNull();
+    render(renderAbout(createProps({ crawCrawGreeting: true })), container);
+    expect(container.querySelector(".about-hero__crawcraw--greeting")).not.toBeNull();
 
-    render(renderAbout(createProps({ clawdWaving: false })), container);
-    expect(container.querySelector(".about-hero__clawd--wave")).toBeNull();
+    render(renderAbout(createProps({ crawCrawGreeting: false })), container);
+    expect(container.querySelector(".about-hero__crawcraw--greeting")).toBeNull();
   });
 
   it("keeps version, commit, branch, and localized UTC build date in one facts grid", () => {

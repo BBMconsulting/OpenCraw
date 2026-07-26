@@ -6,8 +6,8 @@ type ControlUiPublicAsset =
   | "apple-touch-icon.png"
   | "favicon-32.png"
   | "favicon.ico"
-  | "favicon.svg"
   | "manifest.webmanifest"
+  | "opencraw-mark.png"
   | "sw.js"
   | `provider-icons/ProviderIcon-${string}.svg`
   | `plugin-art/${string}.webp`

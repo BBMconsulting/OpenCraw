@@ -1,4 +1,4 @@
-// OpenClaw chat engine: transport-agnostic conversation over typed operations.
+// OpenCraw chat engine: transport-agnostic conversation over typed operations.
 import type { SystemAgentChatQuestion } from "../../packages/gateway-protocol/src/index.js";
 import { isSensitiveConfigPath } from "../config/sensitive-paths.js";
 import { formatErrorMessage } from "../infra/errors.js";
@@ -135,7 +135,7 @@ function createCaptureRuntime(): CaptureRuntime {
     log: (...args) => lines.push(args.join(" ")),
     error: (...args) => lines.push(args.join(" ")),
     exit: (code) => {
-      throw new Error(`OpenClaw operation exited with code ${String(code)}`);
+      throw new Error(`OpenCraw operation exited with code ${String(code)}`);
     },
     read: () => lines.join("\n").trim(),
   };
@@ -358,7 +358,7 @@ function redactSensitiveCommandText(text: string): string {
 function formatPendingOperationForAssistant(operation: SystemAgentOperation): string {
   const description = describeSystemAgentPersistentOperation(operation);
   return operation.kind === "setup"
-    ? `${description}. Exact setup JSON: ${JSON.stringify(operation)}. Keep the verified model unless the user explicitly asks to leave OpenClaw and reconfigure inference.`
+    ? `${description}. Exact setup JSON: ${JSON.stringify(operation)}. Keep the verified model unless the user explicitly asks to leave OpenCraw and reconfigure inference.`
     : description;
 }
 
@@ -512,7 +512,7 @@ export class SystemAgentChatEngine {
     }
     if (/^(quit|exit)$/i.test(trimmed)) {
       // Leaving the process is a host action, not a conversation the AI owns.
-      return { text: "OpenClaw retracts into shell. Bye.", action: "exit" };
+      return { text: "OpenCraw retracts into shell. Bye.", action: "exit" };
     }
     if (this.awaitingSetupChannel) {
       if (/^(cancel|abort|stop)$/i.test(trimmed)) {
@@ -532,7 +532,7 @@ export class SystemAgentChatEngine {
       );
     }
     if (this.opts.operatorApprovalOnly && this.getPendingOperatorProposal()) {
-      return { text: "Approval pending. Human must decide in OpenClaw UI.", action: "none" };
+      return { text: "Approval pending. Human must decide in OpenCraw UI.", action: "none" };
     }
     // Secret hygiene: an exact `config set` on a sensitive path carries a raw
     // token and must never reach a model. The host handles its redacted
@@ -638,7 +638,7 @@ export class SystemAgentChatEngine {
     operation: SystemAgentOperation,
   ): Promise<SystemAgentChatReply> {
     if (!isPersistentSystemAgentOperation(operation)) {
-      throw new Error(`OpenClaw host received a non-persistent approved operation.`);
+      throw new Error(`OpenCraw host received a non-persistent approved operation.`);
     }
     const capture = createCaptureRuntime();
     let result: SystemAgentOperationResult | undefined;
@@ -680,7 +680,7 @@ export class SystemAgentChatEngine {
       return {
         text: [
           baseText,
-          "Your agent is hatching — handing you over now. You can always find me in Settings → Ask OpenClaw.",
+          "Your agent is hatching — handing you over now. You can always find me in Settings → Ask OpenCraw.",
         ].join("\n\n"),
         action: "open-tui",
         agentDraft: "hatch",
@@ -699,7 +699,7 @@ export class SystemAgentChatEngine {
   }
 
   /**
-   * AI turn: the OpenClaw persona answers and acts through the ring-zero
+   * AI turn: the OpenCraw persona answers and acts through the ring-zero
    * tool. The single-turn planner is a second inference path; if neither path
    * answers, the turn fails closed instead of executing model-free guesses.
    */
@@ -881,7 +881,7 @@ export class SystemAgentChatEngine {
       kind === "open-setup" ||
       kind === "open-tui"
     ) {
-      return "Channel, model, and setup flows need a human operator in the OpenClaw app; they cannot run from a delegated agent request.";
+      return "Channel, model, and setup flows need a human operator in the OpenCraw app; they cannot run from a delegated agent request.";
     }
     return undefined;
   }
@@ -915,7 +915,7 @@ export class SystemAgentChatEngine {
       }
       if (operation.target !== "channels") {
         return {
-          text: "Setup can replace the inference route powering this session. Exit OpenClaw and run `openclaw onboard`; it saves only a route that passes a live test. Then start OpenClaw again.",
+          text: "Setup can replace the inference route powering this session. Exit OpenCraw and run `openclaw onboard`; it saves only a route that passes a live test. Then start OpenCraw again.",
           action: "none",
         };
       }
@@ -1126,7 +1126,7 @@ export class SystemAgentChatEngine {
       return null;
     }
     return [
-      "No usable inference route is configured, so OpenClaw cannot continue.",
+      "No usable inference route is configured, so OpenCraw cannot continue.",
       "Exit and run `openclaw onboard`; it saves only a route that passes a live test.",
     ].join("\n");
   }
@@ -1158,7 +1158,7 @@ export class SystemAgentChatEngine {
     return {
       text: [
         "Changing provider credentials would replace the inference route powering this session.",
-        "Exit OpenClaw and run `openclaw onboard`; it stages credentials, live-tests the new route, and saves only a passing setup. Then start OpenClaw again.",
+        "Exit OpenCraw and run `openclaw onboard`; it stages credentials, live-tests the new route, and saves only a passing setup. Then start OpenCraw again.",
       ].join("\n"),
       action: "none",
     };
@@ -1239,7 +1239,7 @@ export class SystemAgentChatEngine {
         this.wizardBridge = null;
         this.lastSensitiveChannel = bridge.label;
         return [
-          "Sensitive input is not accepted in the OpenClaw chat because terminal input is visible.",
+          "Sensitive input is not accepted in the OpenCraw chat because terminal input is visible.",
           `Say \`open channel wizard\` and I'll hand you to the masked terminal wizard for ${bridge.label}, or run \`openclaw channels add --channel ${bridge.label}\` yourself later.`,
         ].join("\n");
       }

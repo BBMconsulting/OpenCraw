@@ -277,7 +277,7 @@ describeControlUiE2e("Control UI sidebar customization mocked Gateway E2E", () =
       );
       await expect
         .poll(() => trimmedTextContents(pinnedItems))
-        .toEqual(["OpenClaw", "Usage", "Automations", "Plugins"]);
+        .toEqual(["Usage", "Automations", "Plugins"]);
       await expect.poll(() => sidebar.locator(".sidebar-brand").count()).toBe(1);
       // Desktop renders no topbar row: the sidebar owns navigation.
       await expect.poll(() => page.locator(".topbar").isVisible()).toBe(false);
@@ -394,7 +394,7 @@ describeControlUiE2e("Control UI sidebar customization mocked Gateway E2E", () =
       await expect
         .poll(() => trimmedTextContents(settingsLinks))
         .toEqual([
-          "Ask OpenClaw",
+          "Ask OpenCraw",
           "Approvals",
           "Infrastructure",
           "Advanced",
@@ -415,7 +415,7 @@ describeControlUiE2e("Control UI sidebar customization mocked Gateway E2E", () =
       await expect.poll(() => browserResult.isVisible()).toBe(true);
       await browserResult.click();
       await expect.poll(() => new URL(page.url()).pathname).toBe("/settings/infrastructure");
-      await expect.poll(() => new URL(page.url()).search).toBe("?section=browser");
+      await expect.poll(() => new URL(page.url()).search).toBe("?section=browser&advanced=1");
       await expect.poll(() => new URL(page.url()).hash).toBe("#config-section-browser");
       await expect.poll(() => page.locator("#config-section-browser").isVisible()).toBe(true);
       await captureSettingsSidebarProof(settingsSidebar, "01c-settings-search-deep-link.png");
@@ -453,12 +453,15 @@ describeControlUiE2e("Control UI sidebar customization mocked Gateway E2E", () =
       await expect.poll(() => settingsSearch.inputValue()).toBe("");
       await captureSettingsSidebarProof(settingsSidebar, "01g-settings-search-reset.png");
       await holdUiProof(page);
-      await settingsSidebar.getByRole("link", { name: "Ask OpenClaw" }).click();
+      await settingsSidebar.getByRole("link", { name: "Ask OpenCraw" }).click();
       await expect.poll(() => new URL(page.url()).pathname).toBe("/custodian");
       await expect
         .poll(() => page.locator(".shell").getAttribute("class"))
         .not.toContain("shell--onboarding");
-      await expect.poll(() => sidebar.isVisible()).toBe(true);
+      // Ask OpenCraw is a settings-takeover page; the Settings sidebar owns
+      // navigation there while the application sidebar remains hidden.
+      await expect.poll(() => settingsSidebar.isVisible()).toBe(true);
+      await expect.poll(() => sidebar.isVisible()).toBe(false);
       await expect
         .poll(() => page.getByRole("button", { name: "Exit setup" }).isVisible())
         .toBe(false);
@@ -470,8 +473,13 @@ describeControlUiE2e("Control UI sidebar customization mocked Gateway E2E", () =
       await expect.poll(() => moreButton.getAttribute("aria-expanded")).toBe("false");
       await moreButton.click();
       await expect.poll(() => moreButton.getAttribute("aria-expanded")).toBe("true");
+      // Enabled plugin tabs render directly in the sidebar body, not inside
+      // the More menu.
       await expect
         .poll(() => trimmedTextContents(moreMenu.getByRole("menuitem")))
+        .not.toContain("Logbook");
+      await expect
+        .poll(() => trimmedTextContents(sidebar.locator(".nav-item__text")))
         .toContain("Logbook");
       await expect.poll(() => trimmedTextContents(pinnedItems)).not.toContain("Logbook");
       // Workboard ships disabled, so it stays hidden from navigation entirely.
@@ -490,17 +498,13 @@ describeControlUiE2e("Control UI sidebar customization mocked Gateway E2E", () =
         .not.toContain("Workboard");
       const tasksItem = menu.getByRole("menuitemcheckbox", { name: "Tasks" });
       await expect.poll(() => tasksItem.getAttribute("aria-checked")).toBe("false");
-      const custodianItem = menu.getByRole("menuitemcheckbox", { name: "OpenClaw" });
-      await expect.poll(() => custodianItem.getAttribute("aria-checked")).toBe("true");
+      // Ask OpenCraw lives in Settings; the custodian route is intentionally
+      // absent from the customizable application-navigation route set.
       await expect
-        .poll(() => custodianItem.evaluate((element) => element === document.activeElement))
-        .toBe(true);
+        .poll(() => menu.getByRole("menuitemcheckbox", { name: "OpenCraw" }).count())
+        .toBe(0);
       await captureUiProof(page, "02-customize-menu.png");
 
-      await custodianItem.click();
-      await expect
-        .poll(() => trimmedTextContents(pinnedItems))
-        .toEqual(["Usage", "Automations", "Plugins"]);
       await tasksItem.click();
       await expect
         .poll(() => trimmedTextContents(pinnedItems))
@@ -514,14 +518,14 @@ describeControlUiE2e("Control UI sidebar customization mocked Gateway E2E", () =
       await moreButton.click();
       await expect
         .poll(() => trimmedTextContents(moreMenu.getByRole("menuitem")))
-        .toContain("OpenClaw");
+        .not.toContain("Tasks");
       await captureUiProof(page, "03-persisted-customization.png");
 
       await moreMenu.getByRole("menuitem", { name: "Edit pinned items" }).click();
       await menu.getByRole("menuitem", { name: "Reset pinned items" }).click();
       await expect
         .poll(() => trimmedTextContents(pinnedItems))
-        .toEqual(["OpenClaw", "Usage", "Automations", "Plugins"]);
+        .toEqual(["Usage", "Automations", "Plugins"]);
 
       // The sidebar search field is the command palette entry point.
       const searchButton = sidebar.locator(".sidebar-search");
@@ -907,7 +911,7 @@ describeControlUiE2e("Control UI sidebar customization mocked Gateway E2E", () =
     try {
       await page.goto(`${server.baseUrl}chat`);
       const sidebar = page.locator("openclaw-app-sidebar");
-      await sidebar.getByRole("button", { name: /Agent menu/ }).click();
+      await sidebar.getByRole("button", { name: /Switch agent/ }).click();
       const menu = sidebar.locator("wa-dropdown.sidebar-agent-menu");
       const mainSwitch = menu.getByRole("menuitemradio", { name: "Main" });
       const researchSwitch = menu.getByRole("menuitemradio", { name: "Research" });

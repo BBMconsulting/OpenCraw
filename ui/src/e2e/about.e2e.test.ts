@@ -96,26 +96,28 @@ describeControlUiE2e("Control UI About mocked Gateway E2E", () => {
         .toContain("separate from this Control UI build");
 
       const hero = page.locator(".about-hero");
-      await expect.poll(() => hero.locator(".about-hero__name").textContent()).toBe("OpenClaw");
+      await expect.poll(() => hero.locator(".about-hero__name").textContent()).toBe("OpenCraw");
       await expect
         .poll(() => hero.locator(".about-hero__version").textContent())
         .toBe("v2026.7.10");
 
-      const githubLink = hero.getByRole("link", { name: "GitHub", exact: true });
+      const githubLink = hero.getByRole("link", { name: "OpenCraw source", exact: true });
       await expect
         .poll(() => githubLink.getAttribute("href"))
-        .toBe("https://github.com/openclaw/openclaw");
+        .toBe("https://github.com/Branded-Business-Models/OpenCraw");
       await expect.poll(() => githubLink.getAttribute("target")).toBe("_blank");
       await expect.poll(() => githubLink.getAttribute("rel")).toContain("noopener");
-      const discordLink = hero.getByRole("link", { name: "Discord", exact: true });
+      const discordLink = hero.getByRole("link", { name: "Upstream Discord", exact: true });
       await expect.poll(() => discordLink.getAttribute("href")).toBe("https://discord.gg/clawd");
-      const xLink = hero.getByRole("link", { name: "X (Twitter)", exact: true });
+      const xLink = hero.getByRole("link", { name: "Upstream X", exact: true });
       await expect.poll(() => xLink.getAttribute("href")).toBe("https://x.com/openclaw");
 
-      const clawd = page.getByRole("button", { name: "Wave hello to Clawd" });
-      await clawd.click();
+      const crawCraw = page.getByRole("button", { name: "Greet CrawCraw" });
+      await crawCraw.click();
       await expect
-        .poll(() => clawd.evaluate((el) => el.classList.contains("about-hero__clawd--wave")))
+        .poll(() =>
+          crawCraw.evaluate((el) => el.classList.contains("about-hero__crawcraw--greeting")),
+        )
         .toBe(true);
 
       await expect.poll(() => page.locator(".about-footer").textContent()).toContain("MIT License");

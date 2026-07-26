@@ -675,7 +675,7 @@ describe("custodian page", () => {
       .fn()
       .mockResolvedValueOnce({
         sessionId: "control-ui-caretaker-00000000-0000-4000-8000-000000000001",
-        reply: "I'm OpenClaw. All systems nominal.",
+        reply: "I'm OpenCraw. All systems nominal.",
         action: "none",
         question: {
           id: "system-agent-quick-actions",

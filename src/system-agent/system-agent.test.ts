@@ -415,7 +415,7 @@ describe("runSystemAgent", () => {
 
     expect(runInteractiveTuiCalls).toBe(0);
     expect(lines.join("\n")).toContain(
-      "OpenClaw needs an interactive TTY. Use --message for one command.",
+      "OpenCraw needs an interactive TTY. Use --message for one command.",
     );
   });
 });

@@ -306,7 +306,7 @@ async function main() {
     "gateway restart audit operation missing",
   );
 
-  console.log("OpenClaw rescue Docker E2E passed");
+  console.log("OpenCraw rescue Docker E2E passed");
 }
 
 main().catch((err: unknown) => {

@@ -77,7 +77,7 @@ describeControlUiE2e("Control UI custodian event nudge mocked Gateway E2E", () =
     try {
       const response = await page.goto(`${server.baseUrl}custodian`);
       expect(response?.status()).toBe(200);
-      await page.getByRole("heading", { name: "OpenClaw", exact: true }).waitFor();
+      await page.getByRole("heading", { name: "OpenCraw", exact: true }).waitFor();
       await expect.poll(async () => (await gateway.getRequests("openclaw.chat")).length).toBe(1);
 
       if (captureUiProofEnabled) {
@@ -273,7 +273,7 @@ describeControlUiE2e("Control UI custodian event nudge mocked Gateway E2E", () =
     try {
       const response = await page.goto(`${server.baseUrl}custodian?onboarding=1`);
       expect(response?.status()).toBe(200);
-      await page.getByRole("heading", { name: "OpenClaw", exact: true }).waitFor();
+      await page.getByRole("heading", { name: "OpenCraw", exact: true }).waitFor();
       await gateway.emitGatewayEvent("health", {
         channelLabels: { telegram: "Telegram" },
         channels: {

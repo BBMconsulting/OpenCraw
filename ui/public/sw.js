@@ -1,4 +1,4 @@
-// OpenClaw Control – Service Worker
+// OpenCraw Control – Service Worker
 // Handles offline caching and push notifications.
 
 const CACHE_PREFIX = "openclaw-control-";
@@ -117,13 +117,13 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data.json();
   } catch {
-    data = { title: "OpenClaw", body: event.data.text() };
+    data = { title: "OpenCraw", body: event.data.text() };
   }
 
-  const title = data.title || "OpenClaw";
+  const title = data.title || "OpenCraw";
   const options = {
     body: data.body || "",
-    icon: "./apple-touch-icon.png",
+    icon: "./opencraw-mark.png",
     badge: "./favicon-32.png",
     tag: data.tag || "openclaw-notification",
     data: { url: data.url || "./" },

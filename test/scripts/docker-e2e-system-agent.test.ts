@@ -60,6 +60,6 @@ describe("OpenClaw Docker E2E scripts", () => {
     expect(source).toContain("remote doctor fix did not point to the local repair command");
     expect(source).toContain("remote rescue must not invoke doctor repair");
     expect(source).not.toContain("[openclaw] done: doctor.fix");
-    expect(source).toContain("OpenClaw rescue Docker E2E passed");
+    expect(source).toContain("OpenCraw rescue Docker E2E passed");
   });
 });

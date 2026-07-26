@@ -8887,6 +8887,20 @@ Do not edit it by hand; run `pnpm docs:map:gen`.
   - H2: Design contract
   - H2: Subpath exports
 
+## reference/opencraw-branding-boundary.md
+
+- Route: /reference/opencraw-branding-boundary
+- Headings:
+  - H1: OpenCraw visible-branding boundary
+  - H2: Pre-implementation inventory
+  - H3: Visible surfaces in scope
+  - H3: Imagery to replace
+  - H3: Visible text to replace
+  - H2: Authoritative assets and generation
+  - H2: Compatibility identifiers that remain OpenClaw
+  - H2: Attribution that remains
+  - H2: Validation and reconciliation rules
+
 ## reference/opencraw-fork-reconciliation.md
 
 - Route: /reference/opencraw-fork-reconciliation

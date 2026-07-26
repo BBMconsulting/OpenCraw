@@ -206,12 +206,12 @@ ARG OPENCLAW_BUNDLED_PLUGIN_DIR
 # If you change these annotations, also update:
 # - docs/install/docker.md ("Base image metadata" section)
 # - https://docs.openclaw.ai/install/docker
-LABEL org.opencontainers.image.source="https://github.com/openclaw/openclaw" \
-  org.opencontainers.image.url="https://openclaw.ai" \
+LABEL org.opencontainers.image.source="https://github.com/Branded-Business-Models/OpenCraw" \
+  org.opencontainers.image.url="https://github.com/Branded-Business-Models/OpenCraw" \
   org.opencontainers.image.documentation="https://docs.openclaw.ai/install/docker" \
   org.opencontainers.image.licenses="MIT" \
-  org.opencontainers.image.title="OpenClaw" \
-  org.opencontainers.image.description="OpenClaw gateway and CLI runtime container image"
+  org.opencontainers.image.title="OpenCraw" \
+  org.opencontainers.image.description="OpenCraw downstream OpenClaw-compatible gateway and CLI runtime image"
 
 WORKDIR /app
 

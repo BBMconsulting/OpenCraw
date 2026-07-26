@@ -203,14 +203,12 @@ function resolveTerminalThemeMode(): "dark" | "light" {
   return document.documentElement.dataset.themeMode === "light" ? "light" : "dark";
 }
 
-// The mascot SVG animates via SMIL, so it must load through <img src> —
-// inlining the markup would freeze it (see ui/public/favicon.svg).
 function renderConnectingSplash(basePath: string) {
   return html`
     <main class="connect-splash" role="status" aria-live="polite" aria-label=${t("common.loading")}>
       <img
         class="connect-splash__logo"
-        src=${controlUiPublicAssetPath("favicon.svg", basePath)}
+        src=${controlUiPublicAssetPath("opencraw-mark.png", basePath)}
         alt=""
       />
     </main>
@@ -227,7 +225,7 @@ function renderApprovalDocument(runtime: ApplicationRuntime) {
       <main class="approval-page approval-page--booting" role="status" aria-live="polite">
         <img
           class="connect-splash__logo"
-          src=${controlUiPublicAssetPath("favicon.svg", runtime.context.basePath)}
+          src=${controlUiPublicAssetPath("opencraw-mark.png", runtime.context.basePath)}
           alt=""
         />
         <span>${t("common.loading")}</span>

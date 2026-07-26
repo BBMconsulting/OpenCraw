@@ -1,11 +1,33 @@
-# OpenCraw
+<p align="center">
+  <img src="docs/assets/opencraw/opencraw-wordmark.png" alt="OpenCraw" width="720">
+</p>
 
-An Ai gateway/assistant designed to provide an interface for inference, agentic orchestration and task execution operations.
+<p align="center">
+  <a href="https://github.com/Branded-Business-Models/OpenCraw/actions/workflows/opencraw-ci.yml"><img src="https://github.com/Branded-Business-Models/OpenCraw/actions/workflows/opencraw-ci.yml/badge.svg" alt="OpenCraw CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
+</p>
 
-# Mascot
+OpenCraw is a downstream, OpenClaw-compatible AI gateway and assistant interface
+for inference, agentic orchestration, and task execution. It maintains a narrow
+fork-specific identity and selected operational customizations while preserving
+the upstream command, configuration, protocol, package, and state contracts
+needed for compatibility.
 
-Crawbie Pincherton—better known as CrawCraw—is the bold little crawfish behind BBM’s Ai development efforts. Cheerful, sharp-clawed, and always in motion, CrawCraw represents curiosity, persistence, and hands-on problem solving: the kind of character who scuttles straight into complexity, organizes the chaos, and comes back with something useful. As the mascot of OpenCraw and CrawCode, he embodies approachable intelligence, spirited experimentation, and the idea that powerful tools do not have to feel intimidating.
+OpenCraw is based on [OpenClaw](https://github.com/openclaw/openclaw). General
+installation, configuration, and usage documentation remains upstream at
+[docs.openclaw.ai](https://docs.openclaw.ai); OpenCraw does not duplicate it.
+Upstream compatibility is an objective, not a guarantee.
 
-# Originally forked from: [OpenClaw](https://github.com/openclaw/openclaw)
+## Fork records
 
-We forked the upstream OpenClaw and Claw-Code repositories in order to manage our own packaging, changes, and customizations for internal development and client deployments. We are sharing this work in the spirit of giving back to the community. These repositories are public so the community can view, use, and learn from our work. Even when they are published as packaged releases, they are not presented as finished products for general consumption. Our intent is to maintain broad compatibility with the upstream projects we forked from, but compatibility is not guaranteed. This software is provided as-is, without warranty of any kind, express or implied. Use it at your own risk.
+- [Visible-branding boundary](docs/reference/opencraw-branding-boundary.md)
+- [Fork reconciliation record](docs/reference/opencraw-fork-reconciliation.md)
+- [GitHub Actions policy](docs/reference/github-actions-policy.md)
+
+Crawbie Pincherton (“CrawCraw”) is the approved OpenCraw application mark. Its
+authoritative source, provenance, derivatives, and generation rules are recorded
+in the visible-branding boundary.
+
+OpenCraw preserves the upstream MIT license and attribution. See [LICENSE](LICENSE)
+and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). This software is provided
+as-is, without warranty; use it at your own risk.

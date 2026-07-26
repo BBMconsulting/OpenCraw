@@ -1,10 +1,10 @@
-// OpenClaw rescue policy gates remote writes by owner, DM, sandbox, and YOLO posture.
+// OpenCraw rescue policy gates remote writes by owner, DM, sandbox, and YOLO posture.
 import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { resolveExecModePolicy } from "../infra/exec-approvals.js";
 import { normalizeAgentId } from "../routing/session-key.js";
 
 /**
- * Policy checks for remote OpenClaw rescue commands.
+ * Policy checks for remote OpenCraw rescue commands.
  *
  * Rescue intentionally opens only for owner-controlled, non-sandboxed YOLO host
  * posture because remote commands can write local state.
@@ -96,7 +96,7 @@ export function resolveSystemAgentRescuePolicy(
       sandboxActive,
       reason: "sandbox-active",
       message:
-        "OpenClaw rescue is blocked because OpenClaw sandboxing is active. Fix the install locally or disable sandboxing before using remote rescue.",
+        "OpenCraw rescue is blocked because OpenClaw sandboxing is active. Fix the install locally or disable sandboxing before using remote rescue.",
     };
   }
   if (!enabled) {
@@ -108,7 +108,7 @@ export function resolveSystemAgentRescuePolicy(
       yolo,
       sandboxActive,
       reason: "disabled",
-      message: "OpenClaw rescue requires YOLO host posture with sandboxing off.",
+      message: "OpenCraw rescue requires YOLO host posture with sandboxing off.",
     };
   }
   if (!input.senderIsOwner) {
@@ -120,7 +120,7 @@ export function resolveSystemAgentRescuePolicy(
       yolo,
       sandboxActive,
       reason: "not-owner",
-      message: "OpenClaw rescue only accepts commands from an OpenClaw owner.",
+      message: "OpenCraw rescue only accepts commands from an OpenCraw owner.",
     };
   }
   if (ownerDmOnly && !input.isDirectMessage) {
@@ -132,7 +132,7 @@ export function resolveSystemAgentRescuePolicy(
       yolo,
       sandboxActive,
       reason: "not-direct-message",
-      message: "OpenClaw rescue is restricted to owner DMs by default.",
+      message: "OpenCraw rescue is restricted to owner DMs by default.",
     };
   }
   return {

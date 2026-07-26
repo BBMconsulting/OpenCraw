@@ -4,6 +4,46 @@ This record captures reusable source-integration decisions for the OpenCraw
 fork. Instance-specific paths, credentials, service state, backups, and
 validation session identifiers remain in the private instance log.
 
+## 2026-07-26 visible-branding boundary
+
+OpenCraw now owns the safely changeable visible product identity while retaining
+OpenClaw identifiers that are contracts, upstream references, or legal
+attribution. `CrawCraw1.png` is the authoritative visual source. Its exact
+repository copy, provenance record, deterministic derivative generator, and
+production asset requirements are maintained in
+[OpenCraw visible-branding boundary](/reference/opencraw-branding-boundary).
+
+The implementation applies `OpenCraw` as the application and product name and
+`OpenCraw Control` as the browser and Control UI identity. It covers maintained
+browser/PWA assets, the Control UI shell and About presentation, English
+product-semantic copy, fallback and connection states, and system-agent visible
+greetings, status, rescue, setup, and error output. The README is a concise fork
+entry point and directs general product documentation to upstream.
+
+Compatibility-sensitive names remain unchanged, including the `openclaw`
+command and entry point, configuration and state paths, `OPENCLAW_*` variables,
+package and plugin identities, schemas, routes, storage keys, discovery and
+native identifiers, signing/update contracts, and upstream-owned names. The
+implementation deliberately does not establish a repository-wide ban on the
+word `OpenClaw`.
+
+Future upstream reconciliation must classify incoming changes by role before
+resolving text or asset conflicts:
+
+- preserve the OpenCraw visible defaults and the deterministic asset pipeline;
+- accept upstream functional and security changes without renaming compatibility
+  identifiers;
+- keep upstream links, license text, copyright, history, and attribution clearly
+  labeled;
+- re-run the focused branding policy, Control UI, system-agent, compatibility,
+  docs, build, secret-scan, and rendered-interface validations;
+- treat translations, behavior-coupled mascots, and signed native distribution
+  artwork as separately reviewed follow-up scopes.
+
+The supplied derivative artwork informed the approved direction but is not a
+second source of truth. Native package IDs, updater channels, protocols, and
+published artifact identities were not changed.
+
 ## 2026-07-23 GitHub Actions policy reconciliation
 
 OpenCraw now maintains a fork-specific Actions policy. Only compact OpenCraw CI

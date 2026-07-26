@@ -392,7 +392,7 @@ describe("parseSystemAgentOperation", () => {
           },
         },
       ),
-    ).rejects.toThrow("Exit OpenClaw and run `openclaw onboard`");
+    ).rejects.toThrow("Exit OpenCraw and run `openclaw onboard`");
 
     expect(applySetup).not.toHaveBeenCalled();
   });
@@ -988,7 +988,7 @@ describe("parseSystemAgentOperation", () => {
     expect(result).toEqual({ applied: false });
     expect(isPersistentSystemAgentOperation({ kind: "doctor-fix" })).toBe(false);
     expect(runDoctor).not.toHaveBeenCalled();
-    expect(lines.join("\n")).toContain("Exit OpenClaw");
+    expect(lines.join("\n")).toContain("Exit OpenCraw");
     expect(lines.join("\n")).toContain("openclaw doctor --fix");
     expect(lines.join("\n")).not.toContain("[openclaw] running: doctor.fix");
     await expect(fs.access(path.join(tempDir, "audit", "system-agent.jsonl"))).rejects.toThrow();

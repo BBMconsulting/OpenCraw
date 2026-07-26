@@ -21,7 +21,7 @@ afterEach(async () => {
 });
 
 describe("settings sidebar search", () => {
-  it("links Ask OpenClaw to the shared custodian route", () => {
+  it("links Ask OpenCraw to the shared custodian route", () => {
     const onNavigate = vi.fn();
     render(
       renderSettingsSidebar({
@@ -46,7 +46,7 @@ describe("settings sidebar search", () => {
     const link = container.querySelector<HTMLAnchorElement>(
       '.settings-sidebar__item[href="/custodian"]',
     );
-    expect(link?.textContent?.trim()).toBe("Ask OpenClaw");
+    expect(link?.textContent?.trim()).toBe("Ask OpenCraw");
     link?.click();
     expect(onNavigate).toHaveBeenCalledWith("custodian");
   });

@@ -307,7 +307,7 @@ class AppSidebar extends AppSidebarSessionListElement {
         <span class="sidebar-brand__logo-slot sidebar-footer-bar__logo">
           <img
             class="sidebar-brand__logo ${this.logoVisit ? "sidebar-brand__logo--vacated" : ""}"
-            src=${controlUiPublicAssetPath("apple-touch-icon.png", this.basePath)}
+            src=${controlUiPublicAssetPath("opencraw-mark.png", this.basePath)}
             alt=""
             aria-hidden="true"
           />

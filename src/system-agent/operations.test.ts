@@ -280,7 +280,7 @@ describe("parseSystemAgentOperation", () => {
     expect(parseSystemAgentOperation("plugin install npm:@example/plugin")).toEqual({
       kind: "none",
       message:
-        "OpenClaw installs only ClawHub, bundled, or official-catalog plugins. Use `openclaw plugins install <spec>` in a trusted shell to review an arbitrary executable source.",
+        "OpenCraw installs only ClawHub, bundled, or official-catalog plugins. Use `openclaw plugins install <spec>` in a trusted shell to review an arbitrary executable source.",
     });
   });
 
@@ -411,7 +411,7 @@ describe("parseSystemAgentOperation", () => {
     const result = await executeSystemAgentOperation({ kind: "model-setup" }, runtime);
 
     expect(result.applied).toBe(false);
-    expect(lines.join("\n")).toContain("Exit OpenClaw and run `openclaw onboard`");
+    expect(lines.join("\n")).toContain("Exit OpenCraw and run `openclaw onboard`");
     expect(lines.join("\n")).not.toContain("openclaw configure --section model");
   });
 

@@ -1019,11 +1019,11 @@ describe("activateSetupInference", () => {
       ok: true,
       lines: [
         "Inference verified: claude-cli/claude-opus-4-8",
-        "Inference setup completed, but OpenClaw could not record its audit entry: audit directory is read-only",
+        "Inference setup completed, but OpenCraw could not record its audit entry: audit directory is read-only",
       ],
     });
     expect(error).toHaveBeenCalledWith(
-      "Inference setup completed, but OpenClaw could not record its audit entry: audit directory is read-only",
+      "Inference setup completed, but OpenCraw could not record its audit entry: audit directory is read-only",
     );
   });
 

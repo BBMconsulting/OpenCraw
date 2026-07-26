@@ -19,12 +19,12 @@ function withConfiguredBasePath<T>(basePath: string, run: () => T): T {
 
 describe("controlUiPublicAssetPath", () => {
   it("resolves root-mounted public assets from the URL root", () => {
-    expect(controlUiPublicAssetPath("favicon.svg", "")).toBe("/favicon.svg");
+    expect(controlUiPublicAssetPath("opencraw-mark.png", "")).toBe("/opencraw-mark.png");
     expect(controlUiPublicAssetPath("manifest.webmanifest", null)).toBe("/manifest.webmanifest");
   });
 
   it("resolves base-mounted public assets under the configured base path", () => {
-    expect(controlUiPublicAssetPath("favicon.svg", "/ui")).toBe("/ui/favicon.svg");
+    expect(controlUiPublicAssetPath("opencraw-mark.png", "/ui")).toBe("/ui/opencraw-mark.png");
     expect(controlUiPublicAssetPath("sw.js", "/apps/openclaw/")).toBe("/apps/openclaw/sw.js");
   });
 });

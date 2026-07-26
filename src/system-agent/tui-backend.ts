@@ -206,7 +206,7 @@ class SystemAgentTuiBackend implements TuiBackend {
         {
           key: SYSTEM_AGENT_SESSION_KEY,
           sessionId: "openclaw",
-          displayName: "OpenClaw",
+          displayName: "OpenCraw",
           updatedAt: Date.now(),
           thinkingLevel: this.route.thinkingLevel,
           verboseLevel: "off",
@@ -222,14 +222,14 @@ class SystemAgentTuiBackend implements TuiBackend {
       defaultId: SYSTEM_AGENT_ID,
       mainKey: "main",
       scope: "per-sender",
-      agents: [{ id: SYSTEM_AGENT_ID, kind: "system", name: "OpenClaw" }],
+      agents: [{ id: SYSTEM_AGENT_ID, kind: "system", name: "OpenCraw" }],
     };
   }
 
   async patchSession(opts: SessionsPatchParams): Promise<SessionsPatchResult> {
     if (opts.model !== undefined) {
       throw new Error(
-        "OpenClaw cannot change the model inside its active verified session. Exit and run `openclaw onboard`, then start OpenClaw again.",
+        "OpenCraw cannot change the model inside its active verified session. Exit and run `openclaw onboard`, then start OpenCraw again.",
       );
     }
     return {
@@ -238,7 +238,7 @@ class SystemAgentTuiBackend implements TuiBackend {
       key: SYSTEM_AGENT_SESSION_KEY,
       entry: {
         sessionId: "openclaw",
-        displayName: "OpenClaw",
+        displayName: "OpenCraw",
         updatedAt: Date.now(),
       },
       resolved: {},
@@ -317,7 +317,7 @@ class SystemAgentTuiBackend implements TuiBackend {
   private emitFinal(runId: string, sessionKey: string, text: string): void {
     const assistant = message(
       "assistant",
-      text || "OpenClaw listened and found nothing to change.",
+      text || "OpenCraw listened and found nothing to change.",
     );
     this.messages.push(assistant);
     this.emit("chat", {
@@ -382,7 +382,7 @@ async function runSetupHandoff(
 ): Promise<void> {
   if (handoff.target !== "channels") {
     runtime.error(
-      "Setup cannot replace the inference route powering OpenClaw. Exit and run `openclaw onboard`, then start OpenClaw again.",
+      "Setup cannot replace the inference route powering OpenCraw. Exit and run `openclaw onboard`, then start OpenCraw again.",
     );
     return;
   }
@@ -474,7 +474,7 @@ export async function runSystemAgentTui(
     }
     if (handoff.kind === "model-setup") {
       runtime.error(
-        "OpenClaw cannot replace its active inference route. Run `openclaw onboard` outside this session, then start OpenClaw again.",
+        "OpenCraw cannot replace its active inference route. Run `openclaw onboard` outside this session, then start OpenCraw again.",
       );
       return;
     }

@@ -11,16 +11,16 @@ import { SubscriptionsController } from "../../lit/subscriptions-controller.ts";
 import { renderAbout, type AboutCommitCopyState } from "./view.ts";
 
 const COPY_RESULT_VISIBLE_MS = 1800;
-// Mirrors the about-clawd-wave animation duration in about.css so the wave
-// class comes off right as the claw settles and the next poke can replay it.
-const CLAWD_WAVE_MS = 1400;
+// Mirrors the about-crawcraw-greeting animation duration in about.css so the wave
+// class comes off right as the mark settles and the next poke can replay it.
+const CRAWCRAW_GREETING_MS = 1400;
 
 class AboutPage extends OpenClawLightDomElement {
   @consume({ context: applicationContext, subscribe: true })
   private context!: ApplicationContext;
 
   @state() private copyState: AboutCommitCopyState = "idle";
-  @state() private clawdWaving = false;
+  @state() private crawCrawGreeting = false;
 
   private copyResetTimer: ReturnType<typeof globalThis.setTimeout> | null = null;
   private waveResetTimer: ReturnType<typeof globalThis.setTimeout> | null = null;
@@ -42,15 +42,15 @@ class AboutPage extends OpenClawLightDomElement {
     super.disconnectedCallback();
   }
 
-  private pokeClawd() {
-    if (this.clawdWaving) {
+  private greetCrawCraw() {
+    if (this.crawCrawGreeting) {
       return;
     }
-    this.clawdWaving = true;
+    this.crawCrawGreeting = true;
     this.waveResetTimer = globalThis.setTimeout(() => {
       this.waveResetTimer = null;
-      this.clawdWaving = false;
-    }, CLAWD_WAVE_MS);
+      this.crawCrawGreeting = false;
+    }, CRAWCRAW_GREETING_MS);
   }
 
   private async copyCommit() {
@@ -79,12 +79,13 @@ class AboutPage extends OpenClawLightDomElement {
       ? gatewaySnapshot.hello?.server?.version?.trim() || null
       : null;
     const body = renderAbout({
+      basePath: this.context.basePath,
       buildInfo: CONTROL_UI_BUILD_INFO,
       gatewayVersion,
       copyState: this.copyState,
       onCopyCommit: () => void this.copyCommit(),
-      clawdWaving: this.clawdWaving,
-      onPokeClawd: () => this.pokeClawd(),
+      crawCrawGreeting: this.crawCrawGreeting,
+      onGreetCrawCraw: () => this.greetCrawCraw(),
     });
     return html`
       <section class="content-header">
