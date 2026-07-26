@@ -4,6 +4,7 @@ import { constants as fsConstants } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createRastermill } from "rastermill";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sourceDir = path.join(rootDir, "docs/assets/opencraw");
@@ -13,6 +14,16 @@ const assets = [
     source: "opencraw-crawcraw-source.png",
     outputs: [],
     pngSize: [1024, 1536],
+    derivatives: [
+      {
+        output: "ui/public/opencraw-pwa-192.png",
+        pngSize: [192, 192],
+      },
+      {
+        output: "ui/public/opencraw-pwa-512.png",
+        pngSize: [512, 512],
+      },
+    ],
   },
   {
     source: "opencraw-wordmark.png",
@@ -35,6 +46,14 @@ const assets = [
     icoSizes: [16, 32, 48, 64, 128, 256],
   },
 ];
+
+const rastermill = createRastermill({
+  execution: "internal",
+  limits: {
+    inputPixels: 2_000_000,
+    outputPixels: 400_000,
+  },
+});
 
 function readPngSize(bytes, file) {
   const pngSignature = "89504e470d0a1a0a";
@@ -113,6 +132,36 @@ async function run({ check }) {
       await fs.mkdir(path.dirname(outputPath), { recursive: true });
       await fs.copyFile(sourcePath, outputPath);
       console.log(`generated ${output}`);
+    }
+    for (const derivative of asset.derivatives ?? []) {
+      const [width, height] = derivative.pngSize;
+      const encoded = await rastermill.encode(bytes, {
+        format: "png",
+        compressionLevel: 9,
+        metadata: "strip",
+        resize: {
+          enlarge: false,
+          fit: "cover",
+          width,
+          height,
+        },
+      });
+      assertArrayEquals([encoded.width, encoded.height], derivative.pngSize, derivative.output);
+      const outputPath = path.join(rootDir, derivative.output);
+      if (check) {
+        if (!(await pathExists(outputPath))) {
+          stale.push(`${derivative.output} is missing`);
+          continue;
+        }
+        const outputBytes = await fs.readFile(outputPath);
+        if (!encoded.data.equals(outputBytes)) {
+          stale.push(`${derivative.output} differs from the deterministic source transform`);
+        }
+        continue;
+      }
+      await fs.mkdir(path.dirname(outputPath), { recursive: true });
+      await fs.writeFile(outputPath, encoded.data);
+      console.log(`generated ${derivative.output}`);
     }
   }
   if (stale.length > 0) {

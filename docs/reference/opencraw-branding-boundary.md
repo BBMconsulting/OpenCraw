@@ -100,12 +100,23 @@ SVG merely to obtain an SVG filename.
 | `opencraw-favicon.ico`         | 16/32/48/64/128/256 RGBA | `5f5d279d1194e93c99897b77a9103cc368f4ebe2e1ac9c299e3b8244dcd4a7ab` |
 
 The repository-relative asset generator copies the approved, size-specific
-source files into their compatibility-facing Control UI slots. It has no
-absolute paths, font dependency, network dependency, or nondeterministic
-rendering step. Its check mode compares output bytes to the maintained sources.
-New maintained source assets use stable `opencraw-*` filenames; legacy public
-slot names remain only where browser/application compatibility benefits from
-them.
+source files into their compatibility-facing Control UI slots. It also creates
+the 192×192 and 512×512 installable-PWA icons by applying a centered square
+`cover` transform directly to the authoritative 1024×1536 source. The transform
+uses Rastermill's pinned internal Photon backend, strips metadata, and uses a
+fixed PNG compression level. It has no absolute paths, font dependency, network
+dependency, or native-tool fallback. Check mode regenerates the PWA bytes in
+memory and compares every output byte with the tracked asset.
+
+Generated PWA assets use the stable `opencraw-pwa-192.png` and
+`opencraw-pwa-512.png` names. New maintained source assets use stable
+`opencraw-*` filenames; legacy public slot names remain only where
+browser/application compatibility benefits from them.
+
+| Generated asset        | Dimensions | SHA-256                                                            |
+| ---------------------- | ---------- | ------------------------------------------------------------------ |
+| `opencraw-pwa-192.png` | 192×192    | `0ab68fc382dc013a1653a06c1a27528d6e954193803ed28147de7dc74b9bad0f` |
+| `opencraw-pwa-512.png` | 512×512    | `3e4e07dca61f071b681104892fb215fb89baa2388e7cdb02ee74cd23d72276f2` |
 
 The artwork was supplied and approved by the U/D for OpenCraw use. No external
 font file is distributed or required: the approved wordmark is a final raster

@@ -33,20 +33,27 @@ describe("OpenCraw visible-branding policy", () => {
         encoding: "utf8",
       },
     );
-    expect(result.status, result.stderr || result.stdout).toBe(0);
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
     expect(result.stdout).toContain("OpenCraw generated assets are current and valid.");
 
-    expect(readBytes("ui/public/opencraw-mark.png")).toEqual(
+    expect(readBytes("ui/public/opencraw-mark.png")).toStrictEqual(
       readBytes("docs/assets/opencraw/opencraw-mark-180.png"),
     );
-    expect(readBytes("ui/public/apple-touch-icon.png")).toEqual(
+    expect(readBytes("ui/public/apple-touch-icon.png")).toStrictEqual(
       readBytes("docs/assets/opencraw/opencraw-mark-180.png"),
     );
-    expect(readBytes("ui/public/favicon-32.png")).toEqual(
+    expect(readBytes("ui/public/favicon-32.png")).toStrictEqual(
       readBytes("docs/assets/opencraw/opencraw-mark-32.png"),
     );
-    expect(readBytes("ui/public/favicon.ico")).toEqual(
+    expect(readBytes("ui/public/favicon.ico")).toStrictEqual(
       readBytes("docs/assets/opencraw/opencraw-favicon.ico"),
+    );
+    expect(sha256("ui/public/opencraw-pwa-192.png")).toBe(
+      "0ab68fc382dc013a1653a06c1a27528d6e954193803ed28147de7dc74b9bad0f",
+    );
+    expect(sha256("ui/public/opencraw-pwa-512.png")).toBe(
+      "3e4e07dca61f071b681104892fb215fb89baa2388e7cdb02ee74cd23d72276f2",
     );
   });
 
@@ -68,9 +75,11 @@ describe("OpenCraw visible-branding policy", () => {
     expect(index).toContain("OpenCraw Control UI");
     expect(manifest.name).toBe("OpenCraw Control");
     expect(manifest.short_name).toBe("OpenCraw");
-    expect(manifest.icons.map((icon) => icon.src)).toEqual([
+    expect(manifest.icons.map((icon) => icon.src)).toStrictEqual([
       "./favicon-32.png",
       "./opencraw-mark.png",
+      "./opencraw-pwa-192.png",
+      "./opencraw-pwa-512.png",
     ]);
     expect(topbar).toContain('aria-label="OpenCraw Control"');
     expect(topbar).toContain('class="topbar-brand__title">OpenCraw Control</span>');
@@ -116,7 +125,7 @@ describe("OpenCraw visible-branding policy", () => {
     const aboutPage = readText("ui/src/pages/about/about-page.ts");
 
     expect(packageJson.name).toBe("openclaw");
-    expect(packageJson.bin).toEqual({ openclaw: "openclaw.mjs" });
+    expect(packageJson.bin).toStrictEqual({ openclaw: "openclaw.mjs" });
     expect(readText("openclaw.mjs")).toContain("OPENCLAW_");
     expect(serviceWorker).toContain('CACHE_PREFIX = "openclaw-control-"');
     expect(serviceWorker).toContain('tag: data.tag || "openclaw-notification"');
