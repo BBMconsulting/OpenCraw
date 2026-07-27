@@ -62,13 +62,16 @@ Light mode uses cool cloud surfaces, blue-gray borders, and a contrast-adjusted
 
 ## Semantic
 
-| Token           | Dark Value | Light Value | Contrast on `--bg` | Use                                           |
+| Token           | Dark Value | Light Value | Relevant contrast  | Use                                           |
 | --------------- | ---------- | ----------- | ------------------ | --------------------------------------------- |
 | `--ok`          | `#22c55e`  | `#15803d`   | ~8.4:1 ✅          | Success states, token meter low               |
 | `--warn`        | `#f59e0b`  | `#b45309`   | ~8.9:1 ✅          | Warnings, degraded states                     |
 | `--danger`      | `#ef4444`  | `#dc2626`   | ~5.1:1 ✅          | Errors, destructive actions, token meter high |
 | `--info`        | `#3b82f6`  | `#2563eb`   | ~5.2:1 ✅          | Informational, token meter mid                |
-| `--destructive` | `#ef4444`  | —           | ~5.1:1 ✅          | Destructive action labels                     |
+| `--destructive` | `#d32f2f`  | `#dc2626`   | 4.77:1 / 4.63:1 ✅ | Text-bearing destructive fills                |
+
+Semantic text rows report contrast on `--bg`. The destructive row reports
+`--destructive-foreground` on the destructive fill in dark/light order.
 
 ## Border
 
