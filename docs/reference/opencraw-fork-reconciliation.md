@@ -4,6 +4,39 @@ This record captures reusable source-integration decisions for the OpenCraw
 fork. Instance-specific paths, credentials, service state, backups, and
 validation session identifiers remain in the private instance log.
 
+## 2026-07-27 Craw palette and retained-workflow correction
+
+The visible default color-scheme identity is now `Craw`; `Claw` is no longer a
+selectable theme name. The normalized production wordmark's fully opaque
+`#0088ff` blue, derived from the authoritative `CrawCraw1.png` design source,
+anchors the dark palette. The light palette uses `#0068c9` for equivalent
+contrast. Related hover, active, focus, selection, secondary, and border tokens
+are recorded in
+[OpenCraw visible-branding boundary](/reference/opencraw-branding-boundary).
+Semantic error, danger, destructive, and security-warning reds remain
+independent of the brand palette.
+
+Browser-local and server-side preferences that still contain the removed
+`claw` value resolve to `craw` while preserving the stored light/dark mode and
+unrelated settings. This compatibility input is not exposed as a duplicate
+selector option. Internal OpenClaw protocol, package, configuration, state,
+storage, native, and legal identifiers remain unchanged.
+
+The failed Docs run for branding baseline `efe6f1b` was caused by a stale
+generated `docs/docs_map.md`. The failed security job in the corresponding
+OpenCraw CI run was caused by high-severity advisories in the locked production
+graph for `brace-expansion` 5.0.7 and `postcss` 8.5.16. The documentation map
+was regenerated, and the lock graph plus root shrinkwrap were advanced to the
+patched `brace-expansion` 5.0.8 and `postcss` 8.5.18 releases without weakening
+the retained documentation, workflow-security, secret-scanning, or production
+audit gates.
+
+Local validation for this change distinguishes complete passes from
+resource-exhausted or infrastructure results. In particular, a changed-file
+type-aware lint pass is not recorded as a full-repository lint pass. The
+full-repository lint and normal-suite restructuring needed for future stable
+promotion remains a separately tracked infrastructure scope.
+
 ## 2026-07-26 visible-branding boundary
 
 OpenCraw now owns the safely changeable visible product identity while retaining

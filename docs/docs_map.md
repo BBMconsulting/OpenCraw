@@ -8897,6 +8897,7 @@ Do not edit it by hand; run `pnpm docs:map:gen`.
   - H3: Imagery to replace
   - H3: Visible text to replace
   - H2: Authoritative assets and generation
+  - H2: Craw color-scheme identity
   - H2: Compatibility identifiers that remain OpenClaw
   - H2: Attribution that remains
   - H2: Validation and reconciliation rules
@@ -8906,6 +8907,8 @@ Do not edit it by hand; run `pnpm docs:map:gen`.
 - Route: /reference/opencraw-fork-reconciliation
 - Headings:
   - H1: OpenCraw Fork Reconciliation Record
+  - H2: 2026-07-27 Craw palette and retained-workflow correction
+  - H2: 2026-07-26 visible-branding boundary
   - H2: 2026-07-23 GitHub Actions policy reconciliation
   - H2: 2026-07-23 session integrity correction
   - H3: Defect and continuing requirements
