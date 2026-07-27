@@ -37,7 +37,7 @@ export const terminalPanelStyles = css`
     background: transparent;
   }
   .tp-resizer:hover {
-    background: var(--accent, #ff5c5c);
+    background: var(--accent, #0088ff);
     opacity: 0.5;
   }
   .tp-resizer--bottom {
@@ -119,7 +119,7 @@ export const terminalPanelStyles = css`
   .tp-session-refresh {
     border: 0;
     background: transparent;
-    color: var(--accent, #ff5c5c);
+    color: var(--accent, #0088ff);
     font: inherit;
     font-weight: 500;
     padding: 2px 4px;
@@ -203,8 +203,8 @@ export const terminalPanelStyles = css`
   .tp-connecting__spinner {
     width: 16px;
     height: 16px;
-    border: 2px solid color-mix(in srgb, var(--accent, #ff5c5c) 24%, transparent);
-    border-top-color: var(--accent, #ff5c5c);
+    border: 2px solid color-mix(in srgb, var(--accent, #0088ff) 24%, transparent);
+    border-top-color: var(--accent, #0088ff);
     border-radius: 50%;
     animation: tp-spin 0.8s linear infinite;
   }

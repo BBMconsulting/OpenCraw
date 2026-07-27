@@ -33,8 +33,8 @@ describe("widget theme bridge", () => {
       "--bg": "  #faf9f7  ",
       "--card": "#ffffff",
       "--text": "   ",
-      "--accent": "#bd4531",
-      "--primary": "#bd4531",
+      "--accent": "#0068c9",
+      "--primary": "#0068c9",
       "--primary-foreground": "#fff",
       "--mono": " ui-monospace ",
     });
@@ -51,8 +51,8 @@ describe("widget theme bridge", () => {
       tokens: {
         surface: "#faf9f7",
         card: "#ffffff",
-        accent: "#bd4531",
-        "accent-fill": "#bd4531",
+        accent: "#0068c9",
+        "accent-fill": "#0068c9",
         "accent-fg": "#fff",
         "font-mono": "ui-monospace",
       },

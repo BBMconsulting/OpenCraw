@@ -28,15 +28,15 @@ const WIDGET_THEME_TOKENS = [
   "font-mono",
 ] as const;
 
-// Baked palettes mirror the host claw theme (ui/src/styles/base.css) so
+// Baked palettes mirror the host Craw theme (ui/src/styles/base.css) so
 // fallback renders match Control UI renders, where the theme bridge pushes the
 // same host values. Contrast tradeoffs in these pairings are owned by the host
 // theme; do not diverge here.
 const WIDGET_BASE_STYLES = `:root{color-scheme:light dark;
---surface:#faf9f7;--card:#ffffff;--elevated:#ffffff;
---text:#403c35;--text-strong:#211e1a;--muted:#6e6960;
---border:#e8e4dc;--border-strong:#d6d0c5;
---accent:#bd4531;--accent-fill:#bd4531;--accent-fg:#ffffff;
+--surface:#f7faff;--card:#ffffff;--elevated:#ffffff;
+--text:#2d3b4a;--text-strong:#172230;--muted:#60758a;
+--border:#dfe7f0;--border-strong:#c7d3df;
+--accent:#0068c9;--accent-fill:#0068c9;--accent-fg:#ffffff;
 --ok:#15803d;--warn:#b45309;--danger:#dc2626;--info:#2563eb;
 --radius:10px;
 --font-body:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
@@ -49,8 +49,8 @@ const WIDGET_BASE_STYLES = `:root{color-scheme:light dark;
 @media (prefers-color-scheme:dark){:root{
 --surface:#0e1015;--card:#161920;--elevated:#191c24;
 --text:#d4d4d8;--text-strong:#f4f4f5;--muted:#8b8b94;
---border:#1e2028;--border-strong:#2e3040;
---accent:#ff5c5c;--accent-fill:#d13c3c;--accent-fg:#ffffff;
+--border:#1b2a3a;--border-strong:#2d4359;
+--accent:#0088ff;--accent-fill:#0088ff;--accent-fg:#061524;
 --ok:#22c55e;--warn:#f59e0b;--danger:#ef4444;--info:#3b82f6}}
 *{box-sizing:border-box}html,body{margin:0}
 body{font:14px/1.5 var(--font-body);color:var(--text)}

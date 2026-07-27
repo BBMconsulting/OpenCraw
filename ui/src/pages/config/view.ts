@@ -875,9 +875,9 @@ type ThemeOption = {
 };
 const BUILTIN_THEME_OPTIONS: ThemeOption[] = [
   {
-    id: "claw",
-    labelKey: "configView.themes.claw.label",
-    descriptionKey: "configView.themes.claw.description",
+    id: "craw",
+    labelKey: "configView.themes.craw.label",
+    descriptionKey: "configView.themes.craw.description",
   },
   {
     id: "knot",

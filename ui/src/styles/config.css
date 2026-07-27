@@ -329,7 +329,7 @@
 }
 
 /* Real-palette preview chips. Colors mirror the :root[data-theme] blocks in
-   base.css (claw = the default :root palette); keep both in sync when
+   base.css (Craw = the default :root palette); keep both in sync when
    retuning a theme. The custom card reads the live variables instead — it is
    only rendered with chips while the imported theme is active. */
 .settings-theme-card__palette {
@@ -357,10 +357,10 @@
   background: var(--theme-chip-accent-2);
 }
 
-.settings-theme-card--claw {
+.settings-theme-card--craw {
   --theme-chip-bg: #0e1015;
-  --theme-chip-accent: #ff5c5c;
-  --theme-chip-accent-2: #14b8a6;
+  --theme-chip-accent: #0088ff;
+  --theme-chip-accent-2: #5bbcff;
 }
 
 .settings-theme-card--knot {
@@ -375,10 +375,10 @@
   --theme-chip-accent-2: #a88050;
 }
 
-:root[data-theme-mode="light"] .settings-theme-card--claw {
-  --theme-chip-bg: #faf9f7;
-  --theme-chip-accent: #bd4531;
-  --theme-chip-accent-2: #0d9488;
+:root[data-theme-mode="light"] .settings-theme-card--craw {
+  --theme-chip-bg: #f7faff;
+  --theme-chip-accent: #0068c9;
+  --theme-chip-accent-2: #005ea8;
 }
 
 :root[data-theme-mode="light"] .settings-theme-card--knot {

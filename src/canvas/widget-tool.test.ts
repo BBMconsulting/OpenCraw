@@ -114,7 +114,7 @@ describe("show_widget", () => {
 
     expect(Buffer.byteLength(html)).toBe(13075);
     expect(createHash("sha256").update(html).digest("hex")).toBe(
-      "3dd21b774b05d53d12088018babfc82604cc098fcacb1cca48dff5be7e7f8812",
+      "367adf260d7598ff4e5057c0329ae22b8af2b0181de7f6884f9f305b0ba84585",
     );
     expect(html).toContain("openclaw:widget-host-init-ack");
     expect(html).toContain("else push.call(waiting,{send,reject})");
@@ -239,9 +239,9 @@ describe("show_widget", () => {
       `Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:;`,
     );
     expect(html).toContain("<title>&lt;Status&gt;</title>");
-    expect(html).toContain("--accent:#bd4531");
-    expect(html).toContain("--accent:#ff5c5c");
-    expect(html).toContain("--accent-fill:#d13c3c");
+    expect(html).toContain("--accent:#0068c9");
+    expect(html).toContain("--accent:#0088ff");
+    expect(html).toContain("--accent-fill:#0088ff");
     expect(html).toContain('<body class="svg-widget"><script>');
     expect(html).toContain("openclaw:widget-size");
     const manifest = JSON.parse(

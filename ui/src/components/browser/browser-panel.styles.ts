@@ -38,7 +38,7 @@ export const browserPanelStyles = css`
     background: transparent;
   }
   .bp-resizer:hover {
-    background: var(--accent, #ff5c5c);
+    background: var(--accent, #0088ff);
     opacity: 0.5;
   }
   .bp-resizer--bottom {
@@ -81,8 +81,8 @@ export const browserPanelStyles = css`
     color: var(--text, #d7dae0);
   }
   .bp-icon.is-active {
-    color: var(--accent, #ff5c5c);
-    background: color-mix(in srgb, var(--accent, #ff5c5c) 14%, transparent);
+    color: var(--accent, #0088ff);
+    background: color-mix(in srgb, var(--accent, #0088ff) 14%, transparent);
   }
   .bp-icon:disabled {
     opacity: 0.4;
@@ -116,7 +116,7 @@ export const browserPanelStyles = css`
     text-overflow: ellipsis;
   }
   .bp-url:focus {
-    border-color: var(--accent, #ff5c5c);
+    border-color: var(--accent, #0088ff);
     background: var(--bg, #0e1015);
   }
   .bp-annotatebar {
@@ -127,7 +127,7 @@ export const browserPanelStyles = css`
     font-size: 12px;
     color: var(--muted, #8a919e);
     border-bottom: 1px solid var(--border, #262b34);
-    background: color-mix(in srgb, var(--accent, #ff5c5c) 7%, transparent);
+    background: color-mix(in srgb, var(--accent, #0088ff) 7%, transparent);
   }
   .bp-annotatebar__hint {
     flex: 1;
@@ -149,8 +149,8 @@ export const browserPanelStyles = css`
     background: color-mix(in srgb, var(--text, #d7dae0) 10%, transparent);
   }
   .bp-btn--primary {
-    border-color: var(--accent, #ff5c5c);
-    color: var(--accent, #ff5c5c);
+    border-color: var(--accent, #0088ff);
+    color: var(--accent, #0088ff);
   }
   .bp-viewport {
     position: relative;

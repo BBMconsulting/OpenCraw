@@ -54,7 +54,7 @@ function makeSettings(gatewayUrl: string, overrides: Partial<UiSettings> = {}): 
     token: "",
     sessionKey: "main",
     lastActiveSessionKey: "main",
-    theme: "claw",
+    theme: "craw",
     themeMode: "system",
     chatShowThinking: true,
     chatShowToolCalls: true,
@@ -256,7 +256,7 @@ describe("loadSettings default gateway URL derivation", () => {
       token: "session-token",
       sessionKey: "main",
       lastActiveSessionKey: "main",
-      theme: "claw",
+      theme: "craw",
       themeMode: "system",
       chatShowThinking: true,
       chatShowToolCalls: true,
@@ -286,7 +286,7 @@ describe("loadSettings default gateway URL derivation", () => {
       token: "gateway-a-token",
       sessionKey: "main",
       lastActiveSessionKey: "main",
-      theme: "claw",
+      theme: "craw",
       themeMode: "system",
       chatShowThinking: true,
       chatShowToolCalls: true,
@@ -301,7 +301,7 @@ describe("loadSettings default gateway URL derivation", () => {
       token: "",
       sessionKey: "main",
       lastActiveSessionKey: "main",
-      theme: "claw",
+      theme: "craw",
       themeMode: "system",
       chatShowThinking: true,
       chatShowToolCalls: true,
@@ -329,7 +329,7 @@ describe("loadSettings default gateway URL derivation", () => {
       token: "memory-only-token",
       sessionKey: "main",
       lastActiveSessionKey: "main",
-      theme: "claw",
+      theme: "craw",
       themeMode: "system",
       chatShowThinking: true,
       chatShowToolCalls: true,
@@ -345,7 +345,7 @@ describe("loadSettings default gateway URL derivation", () => {
     const scopedKey = `openclaw.control.settings.v1:${gwUrl}`;
     expect(JSON.parse(localStorage.getItem(scopedKey) ?? "{}")).toEqual({
       gatewayUrl: gwUrl,
-      theme: "claw",
+      theme: "craw",
       themeMode: "system",
       chatShowThinking: true,
       chatShowToolCalls: true,
@@ -378,7 +378,7 @@ describe("loadSettings default gateway URL derivation", () => {
       token: "",
       sessionKey: "main",
       lastActiveSessionKey: "main",
-      theme: "claw",
+      theme: "craw",
       themeMode: "system",
       chatShowThinking: true,
       chatShowToolCalls: true,
@@ -438,7 +438,7 @@ describe("loadSettings default gateway URL derivation", () => {
       token: "",
       sessionKey: "main",
       lastActiveSessionKey: "main",
-      theme: "claw",
+      theme: "craw",
       themeMode: "system",
       chatShowThinking: true,
       chatShowToolCalls: true,
@@ -731,7 +731,7 @@ describe("loadSettings default gateway URL derivation", () => {
       token: "stale-token",
       sessionKey: "main",
       lastActiveSessionKey: "main",
-      theme: "claw",
+      theme: "craw",
       themeMode: "system",
       chatShowThinking: true,
       chatShowToolCalls: true,
@@ -745,7 +745,7 @@ describe("loadSettings default gateway URL derivation", () => {
       token: "",
       sessionKey: "main",
       lastActiveSessionKey: "main",
-      theme: "claw",
+      theme: "craw",
       themeMode: "system",
       chatShowThinking: true,
       chatShowToolCalls: true,
@@ -900,7 +900,36 @@ describe("loadSettings default gateway URL derivation", () => {
     expect(settings.customTheme?.themeId).toBe("cmlhfpjhw000004l4f4ax3m7z");
   });
 
-  it("falls back to claw when persisted custom theme data is invalid", () => {
+  it("resolves a stored Claw preference to Craw without changing unrelated settings", () => {
+    setTestLocation({
+      protocol: "https:",
+      host: "gateway.example:8443",
+      pathname: "/",
+    });
+
+    const gwUrl = expectedGatewayUrl("");
+    localStorage.setItem(
+      `openclaw.control.settings.v1:${gwUrl}`,
+      JSON.stringify({
+        gatewayUrl: gwUrl,
+        theme: "claw",
+        themeMode: "light",
+        locale: "de",
+        navWidth: 320,
+        chatShowThinking: false,
+      }),
+    );
+
+    expect(loadSettings()).toMatchObject({
+      theme: "craw",
+      themeMode: "light",
+      locale: "de",
+      navWidth: 320,
+      chatShowThinking: false,
+    });
+  });
+
+  it("falls back to Craw when persisted custom theme data is invalid", () => {
     setTestLocation({
       protocol: "https:",
       host: "gateway.example:8443",
@@ -938,7 +967,7 @@ describe("loadSettings default gateway URL derivation", () => {
     );
 
     const settings = loadSettings();
-    expect(settings.theme).toBe("claw");
+    expect(settings.theme).toBe("craw");
     expect(settings.themeMode).toBe("dark");
   });
 
@@ -955,7 +984,7 @@ describe("loadSettings default gateway URL derivation", () => {
       token: "",
       sessionKey: "agent:test_old:main",
       lastActiveSessionKey: "agent:test_old:main",
-      theme: "claw",
+      theme: "craw",
       themeMode: "system",
       chatShowThinking: true,
       chatShowToolCalls: true,
@@ -997,7 +1026,7 @@ describe("loadSettings default gateway URL derivation", () => {
       token: "",
       sessionKey: "agent:current:main",
       lastActiveSessionKey: "agent:current:main",
-      theme: "claw",
+      theme: "craw",
       themeMode: "system",
       chatShowThinking: true,
       chatShowToolCalls: true,

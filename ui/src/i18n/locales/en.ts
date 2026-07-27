@@ -1285,9 +1285,9 @@ export const en: TranslationMap = {
       wizard: "Setup Wizard",
     },
     themes: {
-      claw: {
-        label: "Claw",
-        description: "Chroma family",
+      craw: {
+        label: "Craw",
+        description: "OpenCraw blue",
       },
       knot: {
         label: "Knot",

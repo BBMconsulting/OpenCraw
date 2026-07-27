@@ -38,6 +38,8 @@ branding boundary rather than reuse the current patch mechanically.
   approval, diagnostics, errors, and the interactive TUI;
 - the About page product name, CrawCraw artwork, fork repository link, upstream
   links, and attribution statement;
+- the default Control UI color scheme, its selector, previews, and OpenCraw
+  blue accent family;
 - fork-owned Docker/OCI title, description, source, and documentation labels;
 - narrow regression controls for the visible boundary and retained contracts.
 
@@ -50,13 +52,13 @@ branding boundary rather than reuse the current patch mechanically.
 - the generated crimson Clawd hero on the About page;
 - the OpenClaw-first README presentation.
 
-The animated chat welcome mascot, Lobsterdex visits, dreaming lobster,
-configuration palette previews, and channel empty-state mascot are feature
-surfaces rather than passive product logos. They remain deferred until a
-CrawCraw-compatible animation implementation can preserve drag/drop, tease,
-catch, sleep, palette, visit, and other feature behavior. Native application
-artwork and display names also remain deferred until OpenCraw owns a supported
-native build, signing, update, and distribution path.
+The animated chat welcome mascot, Lobsterdex visits, dreaming lobster, and
+channel empty-state mascot are feature surfaces rather than passive product
+logos. They remain deferred until a CrawCraw-compatible animation
+implementation can preserve drag/drop, tease, catch, sleep, palette, visit, and
+other feature behavior. Native application artwork and display names also
+remain deferred until OpenCraw owns a supported native build, signing, update,
+and distribution path.
 
 ### Visible text to replace
 
@@ -123,6 +125,35 @@ font file is distributed or required: the approved wordmark is a final raster
 asset, not live font-rendered output. Any material change to CrawCraw's
 appearance or typography requires renewed U/D review.
 
+## Craw color-scheme identity
+
+`Craw` is the selectable and default Control UI color scheme. The normalized
+wordmark contains `#0088FF` as its dominant fully opaque blue, so that exact
+production-asset color anchors the dark palette. The light palette uses a
+darker `#0068C9` adaptation to retain normal-text and filled-control contrast
+against the cool `#F7FAFF` surface. The former `Claw` name is not selectable:
+browser-local and server-side preferences carrying `claw` normalize to `craw`
+while retaining the stored mode and unrelated settings. A later settings save
+emits only the current `craw` value.
+
+| Role                    | Craw dark                         | Craw light                        |
+| ----------------------- | --------------------------------- | --------------------------------- |
+| Primary / accent / ring | `#0088FF`                         | `#0068C9`                         |
+| Hover                   | `#33A0FF`                         | `#0057AA`                         |
+| Accent foreground       | `#061524`                         | `#FFFFFF`                         |
+| Active / selected fill  | accent-subtle blue                | accent-subtle blue                |
+| Selection               | `#0068C9` / `#FFFFFF`             | `#0068C9` / `#FFFFFF`             |
+| Secondary accent        | `#5BBCFF`                         | `#005EA8`                         |
+| Border / strong / hover | `#1B2A3A` / `#2D4359` / `#516C87` | `#DFE7F0` / `#C7D3DF` / `#74889D` |
+| Focus tint              | `rgba(0, 136, 255, 0.2)`          | `rgba(0, 104, 201, 0.15)`         |
+
+The dark accent has a 5.4:1 contrast ratio against `#0E1015`; its foreground
+has 5.2:1 against the accent. The light accent has 5.2:1 against `#F7FAFF`,
+white has 5.5:1 against the primary fill, and the hover borders exceed the
+3:1 non-text requirement in both modes. Semantic error, destructive, security
+warning, and danger tokens remain independently red; the Craw blue family must
+not replace them.
+
 ## Compatibility identifiers that remain OpenClaw
 
 The following categories are not display-branding defects and must not be
@@ -172,7 +203,9 @@ Every branding change must prove:
 5. upstream links, MIT license text, notices, and attribution remain intact;
 6. desktop/mobile and dark/light rendering, accessibility labels, fallback,
    connection, login, About, approval, and notification states remain usable;
-7. existing browser storage and persisted runtime state require no migration.
+7. existing browser storage and persisted runtime state remain valid, and any
+   removed visible preference name resolves non-destructively without changing
+   unrelated settings.
 
 On each upstream synchronization, compare this record with upstream changes to
 the affected surfaces. Retain the visible OpenCraw layer, adapt it to current

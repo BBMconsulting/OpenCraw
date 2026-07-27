@@ -73,13 +73,13 @@ openclaw-board-view {
 }
 
 .board-tabs__tab--active::part(base) {
-  border-bottom-color: var(--accent, #ff5c5c);
+  border-bottom-color: var(--accent, #0088ff);
   color: var(--text, #d7dae0);
 }
 
 .board-tabs__tab--drop::part(base) {
-  background: color-mix(in srgb, var(--accent, #ff5c5c) 14%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent, #ff5c5c) 70%, transparent);
+  background: color-mix(in srgb, var(--accent, #0088ff) 14%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent, #0088ff) 70%, transparent);
 }
 
 .board-tabs__overflow,
@@ -136,7 +136,7 @@ openclaw-board-view {
 }
 
 .board-grid__append-zone {
-  border-top: 1px dashed color-mix(in srgb, var(--accent, #ff5c5c) 48%, transparent);
+  border-top: 1px dashed color-mix(in srgb, var(--accent, #0088ff) 48%, transparent);
   bottom: -42px;
   height: 38px;
   left: 0;
@@ -167,12 +167,12 @@ openclaw-board-widget-cell {
 }
 
 .board-widget:focus-visible {
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent, #ff5c5c) 70%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent, #0088ff) 70%, transparent);
   outline: none;
 }
 
 .board-widget--dragging {
-  border-color: color-mix(in srgb, var(--accent, #ff5c5c) 72%, transparent);
+  border-color: color-mix(in srgb, var(--accent, #0088ff) 72%, transparent);
   box-shadow: 0 16px 36px rgb(0 0 0 / 28%);
   opacity: 0.88;
   transform: scale(0.995);
@@ -390,7 +390,7 @@ openclaw-board-widget-cell {
 
 .swarm-widget__dot--running {
   animation: swarm-widget-pulse 1.25s ease-in-out infinite;
-  background: var(--accent, #ff5c5c);
+  background: var(--accent, #0088ff);
 }
 
 .swarm-widget__dot--done {
@@ -494,7 +494,7 @@ openclaw-board-widget-cell {
 }
 
 .observer-widget__progress-track > span {
-  background: var(--accent, #ff5c5c);
+  background: var(--accent, #0088ff);
   display: block;
   height: 100%;
 }
@@ -593,7 +593,7 @@ openclaw-board-widget-cell {
 
 .observer-widget__unread-boundary {
   align-items: center;
-  color: var(--accent, #ff5c5c);
+  color: var(--accent, #0088ff);
   display: grid;
   font-size: 8px;
   gap: 8px;
@@ -605,7 +605,7 @@ openclaw-board-widget-cell {
 
 .observer-widget__unread-boundary::before,
 .observer-widget__unread-boundary::after {
-  border-top: 1px solid color-mix(in srgb, var(--accent, #ff5c5c) 42%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--accent, #0088ff) 42%, transparent);
   content: "";
 }
 
@@ -681,8 +681,8 @@ openclaw-workboard-mini-widget {
 
 .workboard-widget__status--ready,
 .workboard-widget__status--running {
-  border-color: color-mix(in srgb, var(--accent, #ff5c5c) 45%, transparent);
-  color: var(--accent, #ff5c5c);
+  border-color: color-mix(in srgb, var(--accent, #0088ff) 45%, transparent);
+  color: var(--accent, #0088ff);
 }
 
 .workboard-widget-card__meta {
@@ -732,7 +732,7 @@ openclaw-workboard-mini-widget {
 }
 
 .workboard-widget-mini > header a {
-  color: var(--accent, #ff5c5c);
+  color: var(--accent, #0088ff);
   font-size: 10px;
 }
 
@@ -766,7 +766,7 @@ openclaw-workboard-mini-widget {
 
 @keyframes swarm-widget-pulse {
   50% {
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent, #ff5c5c) 25%, transparent);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent, #0088ff) 25%, transparent);
     opacity: 0.55;
   }
 }
@@ -1084,7 +1084,7 @@ openclaw-workboard-mini-widget {
 }
 
 .board-empty__mark {
-  color: var(--accent, #ff5c5c);
+  color: var(--accent, #0088ff);
   font-size: 24px;
 }
 

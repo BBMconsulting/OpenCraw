@@ -21,9 +21,8 @@ import {
   type TextScaleStop,
   type UiSettings,
 } from "./settings.ts";
-import type { ThemeMode, ThemeName } from "./theme.ts";
+import { normalizeThemeName, type ThemeMode, type ThemeName } from "./theme.ts";
 
-const THEMES: ReadonlySet<ThemeName> = new Set(["claw", "knot", "dash", "custom"]);
 const THEME_MODES: ReadonlySet<ThemeMode> = new Set(["light", "dark", "system"]);
 
 /**
@@ -51,7 +50,7 @@ function prefValuesEqual(left: unknown, right: unknown): boolean {
 
 const SYNCED_PREFS = {
   theme: prefSpec<ThemeName>({
-    extract: (value) => (THEMES.has(value as ThemeName) ? (value as ThemeName) : undefined),
+    extract: normalizeThemeName,
     local: (settings) => settings.theme,
     // A server "custom" theme is only honorable once this browser imported
     // one; the imported palette itself is too large to live in config.

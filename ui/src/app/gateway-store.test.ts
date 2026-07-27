@@ -341,7 +341,7 @@ describe("createApplicationGateway reconnecting snapshot", () => {
     const selectionKey = `openclaw.control.currentGateway.v1:${pageGateway}`;
     const storedPageSettings = JSON.stringify({
       gatewayUrl: pageGateway,
-      theme: "claw",
+      theme: "craw",
       sessionKey: "agent:page:saved",
     });
     const settings = {

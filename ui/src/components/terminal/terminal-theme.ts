@@ -30,7 +30,7 @@ const ANSI = {
 } as const;
 
 const DYNAMIC_COLORS = {
-  dark: { background: "#0e1015", cursor: "#ff5c5c", foreground: "#d7dae0" },
+  dark: { background: "#0e1015", cursor: "#0088ff", foreground: "#d7dae0" },
   light: { background: "#f7f8fa", cursor: "#1b1e26", foreground: "#1b1e26" },
 } as const satisfies Record<"dark" | "light", TerminalDefaultColors>;
 

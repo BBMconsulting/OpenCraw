@@ -49,7 +49,7 @@ describe("config view", () => {
     onRawDiscard: vi.fn(),
     onSubsectionChange: vi.fn(),
     version: "2026.3.11",
-    theme: "claw" as ThemeName,
+    theme: "craw" as ThemeName,
     themeMode: "system" as ThemeMode,
     setTheme: vi.fn(),
     setThemeMode: vi.fn(),
@@ -1293,6 +1293,24 @@ describe("config view", () => {
     input.value = "local";
     input.dispatchEvent(new Event("input", { bubbles: true }));
     expect(onFormPatch).toHaveBeenCalledWith(["gateway", "mode"], "local");
+  });
+
+  it("renders Craw as the active default and removes Claw from the selector", () => {
+    const { container } = renderConfigView({
+      activeSection: "__appearance__",
+      includeSections: ["__appearance__"],
+    });
+
+    const craw = queryRequired(container, ".settings-theme-card--craw", HTMLButtonElement);
+    expect(normalizedText(craw)).toBe("Craw");
+    expect(craw.title).toBe("OpenCraw blue");
+    expect(craw.classList.contains("settings-theme-card--active")).toBe(true);
+    expect(container.querySelector(".settings-theme-card--claw")).toBeNull();
+    expect(
+      Array.from(container.querySelectorAll<HTMLElement>(".settings-theme-card__label")).map(
+        (label) => normalizedText(label),
+      ),
+    ).toEqual(["Craw", "Knot", "Dash", "Import"]);
   });
 
   it("opens the tweakcn importer when custom is clicked without an imported theme", () => {

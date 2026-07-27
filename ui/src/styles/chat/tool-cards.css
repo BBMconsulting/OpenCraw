@@ -463,7 +463,7 @@
 }
 
 .chat-cmd--num {
-  color: color-mix(in srgb, var(--accent, #ff5c5c) 82%, var(--text) 18%);
+  color: color-mix(in srgb, var(--accent, #0088ff) 82%, var(--text) 18%);
 }
 
 .chat-cmd--flag {

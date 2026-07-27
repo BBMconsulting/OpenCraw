@@ -19,12 +19,19 @@ describe("resolveTheme", () => {
 describe("parseThemeSelection", () => {
   it("falls back to defaults for unknown stored values", () => {
     expect(parseThemeSelection("fieldmanual", "invalid-mode")).toEqual({
-      theme: "claw",
+      theme: "craw",
       mode: "system",
     });
     expect(parseThemeSelection("dash", "light")).toEqual({
       theme: "dash",
       mode: "light",
+    });
+  });
+
+  it("normalizes the removed Claw preference to Craw while preserving mode", () => {
+    expect(parseThemeSelection("claw", "dark")).toEqual({
+      theme: "craw",
+      mode: "dark",
     });
   });
 });

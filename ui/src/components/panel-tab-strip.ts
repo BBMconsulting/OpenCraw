@@ -134,7 +134,7 @@ export const panelTabStripStyles = css`
   }
   .tabstrip-tab[active]::part(base) {
     color: var(--text, #d7dae0);
-    border-bottom-color: var(--accent, #ff5c5c);
+    border-bottom-color: var(--accent, #0088ff);
   }
   .tabstrip-tab.is-exited::part(base) {
     opacity: 0.55;
@@ -215,7 +215,7 @@ export const panelTabStripStyles = css`
     background: color-mix(in srgb, var(--text, #d7dae0) 6%, transparent);
   }
   .tabstrip-tab[active] + .tabstrip-tab__close {
-    border-bottom-color: var(--accent, #ff5c5c);
+    border-bottom-color: var(--accent, #0088ff);
   }
   .tabstrip-tab__close:hover,
   .tabstrip-tab__close:focus-visible {

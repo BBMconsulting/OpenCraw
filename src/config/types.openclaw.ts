@@ -156,8 +156,11 @@ export type OpenClawConfig = {
      * Control UI mirrors them into browser storage for instant boot.
      */
     prefs?: {
-      /** Control UI theme. */
-      theme?: "claw" | "knot" | "dash" | "custom";
+      /**
+       * Control UI theme. `claw` is a deprecated serialized input that clients
+       * normalize to `craw`; it is not a selectable theme.
+       */
+      theme?: "craw" | "knot" | "dash" | "custom" | "claw";
       /** Light/dark preference. */
       themeMode?: "light" | "dark" | "system";
       /** Text scale percentage stop. */

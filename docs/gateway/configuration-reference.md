@@ -508,7 +508,7 @@ See [Plugins](/tools/plugin).
       avatar: "CB", // emoji, short text, image URL, or data URI
     },
     prefs: {
-      theme: "claw", // claw | knot | dash | custom
+      theme: "craw", // craw | knot | dash | custom
       themeMode: "system", // light | dark | system
       textScale: 100, // 90 | 100 | 110 | 125 | 140
       locale: "en",

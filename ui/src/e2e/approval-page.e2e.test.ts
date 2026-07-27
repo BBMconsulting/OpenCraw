@@ -435,7 +435,7 @@ describeControlUiE2e("Control UI standalone approval page", () => {
     const pageSettingsKey = `openclaw.control.settings.v1:${pageGateway}`;
     const pageSettings = JSON.stringify({
       gatewayUrl: pageGateway,
-      theme: "claw",
+      theme: "craw",
       sessionKey: "agent:page:saved",
     });
     const remoteGateway = "wss://saved-remote.example.test";

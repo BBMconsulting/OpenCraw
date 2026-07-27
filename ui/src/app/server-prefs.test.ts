@@ -56,6 +56,15 @@ describe("server pref extraction", () => {
     });
   });
 
+  it("normalizes a legacy server Claw preference without changing other settings", () => {
+    const onApplied = vi.fn();
+    patchSettings({ theme: "knot", themeMode: "light", locale: "de" });
+
+    expect(applyServerUiPrefs(configWithPrefs({ theme: "claw" }), { onApplied })).toBe(true);
+    expect(onApplied).toHaveBeenCalledWith({ theme: "craw" });
+    expect(loadSettings()).toMatchObject({ theme: "craw", themeMode: "light", locale: "de" });
+  });
+
   it("ignores invalid values and configs without prefs", () => {
     const onApplied = vi.fn();
     expect(
@@ -143,7 +152,7 @@ describe("applyServerUiPrefs", () => {
   it("ignores a server custom theme until this browser imported one", () => {
     const onApplied = vi.fn();
     expect(applyServerUiPrefs(configWithPrefs({ theme: "custom" }), { onApplied })).toBe(false);
-    expect(loadSettings().theme).toBe("claw");
+    expect(loadSettings().theme).toBe("craw");
   });
 });
 

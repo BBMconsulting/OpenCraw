@@ -9,6 +9,7 @@ import {
 import { readConfigFileSnapshot } from "./config.js";
 import { findLegacyConfigIssues } from "./legacy.js";
 import { buildWebSearchProviderConfig, withTempHome, writeOpenClawConfig } from "./test-helpers.js";
+import type { OpenClawConfig } from "./types.js";
 import { validateConfigObject, validateConfigObjectRaw } from "./validation.js";
 import { OpenClawSchema } from "./zod-schema.js";
 
@@ -490,6 +491,11 @@ describe("ui.seamColor", () => {
 });
 
 describe("ui.prefs.sidebarEntries", () => {
+  it("accepts the legacy serialized Claw theme for client-side migration", () => {
+    const config: OpenClawConfig = { ui: { prefs: { theme: "claw" } } };
+    expect(validateConfigObject(config).ok).toBe(true);
+  });
+
   it("accepts the route and session entries synchronized by the Control UI", () => {
     const result = validateConfigObject({
       ui: {
