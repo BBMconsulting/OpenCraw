@@ -142,130 +142,6 @@ function shouldSkipAppLintForMissingSwiftlint(options = {}) {
   return platform !== "darwin" && !swiftlintAvailable;
 }
 
-export function changedCheckLocalDependenciesReady(cwd = process.cwd()) {
-  const nodeModules = path.join(cwd, "node_modules");
-  return (
-    existsSync(path.join(nodeModules, ".modules.yaml")) &&
-    existsSync(path.join(nodeModules, ".bin", "oxfmt")) &&
-    existsSync(path.join(nodeModules, "typescript", "package.json"))
-  );
-}
-
-export function changedCheckRequiresRemote(result) {
-  if (!result || result.paths.length === 0) {
-    return false;
-  }
-  if (
-    shouldRunSqliteSessionSchemaBaselineCheck(result.paths) ||
-    shouldRunPluginSdkApiBaselineCheck(result.paths)
-  ) {
-    return true;
-  }
-  if (result.docsOnly) {
-    return false;
-  }
-  return Object.entries(result.lanes).some(
-    ([lane, enabled]) => enabled && lane !== "docs" && lane !== "releaseMetadata",
-  );
-}
-
-export function shouldDelegateChangedCheckToCrabbox(argv = [], env = process.env, options = {}) {
-  if (isTruthyEnvFlag(env.OPENCLAW_CHECK_CHANGED_REMOTE_CHILD)) {
-    return false;
-  }
-  if (isTruthyEnvFlag(env.CI) || isTruthyEnvFlag(env.GITHUB_ACTIONS)) {
-    return false;
-  }
-  if (argv.includes("--dry-run")) {
-    return false;
-  }
-  const result = options.result;
-  if (!result) {
-    return true;
-  }
-  if (result.paths.length === 0) {
-    return false;
-  }
-  if (isTruthyEnvFlag(env.OPENCLAW_TESTBOX)) {
-    return true;
-  }
-  // Release metadata plans diff the supplied commits after classification. A missing
-  // ref needs the hydrated remote checkout even when the explicit path itself is cheap.
-  if (result.lanes.releaseMetadata && options.diffRefsReady === false) {
-    return true;
-  }
-  return (
-    changedCheckRequiresRemote(result) ||
-    !changedCheckLocalDependenciesReady(options.cwd ?? process.cwd())
-  );
-}
-
-function changedCheckDiffRefsReady({ base, head, cwd = process.cwd() }) {
-  for (const ref of [base, head]) {
-    try {
-      execFileSync("git", ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`], {
-        cwd,
-        stdio: "ignore",
-      });
-    } catch {
-      return false;
-    }
-  }
-  return true;
-}
-
-export function buildChangedCheckCrabboxArgs(argv = [], options = {}) {
-  const delegatedArgv = buildDelegatedChangedCheckArgv(argv, options);
-  return [
-    "crabbox:run",
-    "--",
-    "--provider",
-    "blacksmith-testbox",
-    "--blacksmith-org",
-    "openclaw",
-    "--blacksmith-workflow",
-    ".github/workflows/ci-check-testbox.yml",
-    "--blacksmith-job",
-    "check",
-    "--blacksmith-ref",
-    "main",
-    "--idle-timeout",
-    "90m",
-    "--ttl",
-    "240m",
-    "--timing-json",
-    "--",
-    "env",
-    "OPENCLAW_CHECK_CHANGED_REMOTE_CHILD=1",
-    "OPENCLAW_CHANGED_LANES_RAW_SYNC=1",
-    "CI=1",
-    "PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN=false",
-    "corepack",
-    "pnpm",
-    "check:changed",
-    ...delegatedArgv,
-  ];
-}
-
-function buildDelegatedChangedCheckArgv(argv, options = {}) {
-  const args = parseArgs(argv);
-  if (!args.staged || args.paths.length > 0) {
-    return argv;
-  }
-  const stagedPaths = listStagedChangedPaths(options.cwd);
-  const next = [];
-  if (args.timed) {
-    next.push("--timed");
-  }
-  if (stagedPaths.length === 0) {
-    next.push("--no-changes");
-    return next;
-  }
-  next.push("--base", "HEAD", "--head", "HEAD");
-  next.push("--", ...stagedPaths);
-  return next;
-}
-
 export function shouldRunShrinkwrapGuard(paths) {
   return paths.some((changedPath) => SHRINKWRAP_POLICY_PATH_RE.test(changedPath));
 }
@@ -359,15 +235,6 @@ export function createShrinkwrapGuardCommand(paths) {
       ...packageDirs.flatMap((packageDir) => ["--package-dir", packageDir]),
     ],
   };
-}
-
-async function runChangedCheckViaCrabbox(argv = [], env = process.env) {
-  console.error("[check:changed] delegating to Blacksmith Testbox via `pnpm crabbox:run`.");
-  return await runManagedCommand({
-    bin: "pnpm",
-    args: buildChangedCheckCrabboxArgs(argv),
-    env,
-  });
 }
 
 export function createChangedCheckPlan(result, options = {}) {
@@ -998,50 +865,22 @@ if (isDirectRun()) {
     printUsage();
     process.exitCode = 0;
   } else {
-    let paths;
-    try {
-      paths = args.noChanges
-        ? []
-        : args.paths.length > 0
-          ? args.paths
-          : args.staged
-            ? listStagedChangedPaths()
-            : listChangedPathsFromGit({ base: args.base, head: args.head });
-    } catch (error) {
-      // A sparse/fresh checkout may not have the requested base ref yet. The remote
-      // workflow fetches it, so preserve explicit/default delegation instead of dying locally.
-      if (!shouldDelegateChangedCheckToCrabbox(argv, process.env)) {
-        throw error;
-      }
-      process.exitCode = await runChangedCheckViaCrabbox(argv, process.env);
-    }
-    if (paths) {
-      const result = detectChangedLanesForPaths({
-        paths,
-        base: args.base,
-        head: args.head,
-        staged: args.staged,
-      });
-      if (
-        shouldDelegateChangedCheckToCrabbox(argv, process.env, {
-          cwd: process.cwd(),
-          result,
-          diffRefsReady: result.lanes.releaseMetadata
-            ? args.staged ||
-              changedCheckDiffRefsReady({
-                base: args.base,
-                head: args.head,
-              })
-            : undefined,
-        })
-      ) {
-        process.exitCode = await runChangedCheckViaCrabbox(argv, process.env);
-      } else {
-        process.exitCode = await runChangedCheck(result, {
-          ...args,
-          explicitPaths: args.paths.length > 0,
-        });
-      }
-    }
+    const paths = args.noChanges
+      ? []
+      : args.paths.length > 0
+        ? args.paths
+        : args.staged
+          ? listStagedChangedPaths()
+          : listChangedPathsFromGit({ base: args.base, head: args.head });
+    const result = detectChangedLanesForPaths({
+      paths,
+      base: args.base,
+      head: args.head,
+      staged: args.staged,
+    });
+    process.exitCode = await runChangedCheck(result, {
+      ...args,
+      explicitPaths: args.paths.length > 0,
+    });
   }
 }

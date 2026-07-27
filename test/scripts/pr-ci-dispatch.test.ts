@@ -120,7 +120,7 @@ describePosix("scripts/pr ci-dispatch", () => {
       "observed_run_url=https://github.com/openclaw/openclaw/actions/runs/99",
     );
     expect(readFileSync(fakeGh.calls, "utf8")).toContain(
-      `workflow run ci.yml --ref contributor/fix-hosted-gates -f target_ref=${sha} -f release_gate=true -f pull_request_number=12345`,
+      `workflow run opencraw-ci.yml --ref contributor/fix-hosted-gates -f target_sha=${sha}`,
     );
   });
 

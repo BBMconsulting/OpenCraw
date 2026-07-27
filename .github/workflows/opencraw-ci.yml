@@ -1,7 +1,14 @@
 name: OpenCraw CI
+run-name: OpenCraw CI @ ${{ inputs.target_sha || github.sha }}
 
 on:
   workflow_dispatch:
+    inputs:
+      target_sha:
+        description: Exact commit SHA to validate; blank uses the triggering SHA
+        required: false
+        default: ""
+        type: string
   push:
     branches: [main]
     paths-ignore:
@@ -27,11 +34,12 @@ jobs:
   quality:
     name: Format, lint, and typecheck
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 180
     steps:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
+          ref: ${{ inputs.target_sha || github.sha }}
           persist-credentials: false
           submodules: false
 
@@ -41,23 +49,30 @@ jobs:
           frozen-lockfile: "true"
           install-bun: "false"
 
+      - name: Validate repository manifests and runner policy
+        run: pnpm validation:manifests && pnpm validation:policy
+
       - name: Check formatting
         run: pnpm format:check
 
-      - name: Lint
-        run: pnpm lint
+      - name: Full repository type-aware lint
+        run: pnpm lint:full
+
+      - name: UI localization validation
+        run: pnpm lint:ui:i18n
 
       - name: Typecheck production projects
         run: pnpm tsgo:prod
 
   tests:
-    name: Focused unit and integration tests
+    name: Supported OpenCraw test suite
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
+          ref: ${{ inputs.target_sha || github.sha }}
           persist-credentials: false
           submodules: false
 
@@ -67,15 +82,11 @@ jobs:
           frozen-lockfile: "true"
           install-bun: "false"
 
-      - name: Run fast unit suite
-        run: pnpm test:unit:fast
+      - name: Validate test classification and skip ledger
+        run: pnpm validation:manifests
 
-      - name: Run workflow policy integration tests
-        run: >-
-          node scripts/run-vitest.mjs run
-          test/scripts/opencraw-actions-policy.test.ts
-          test/scripts/install-smoke-no-push-workflow.test.ts
-          test/scripts/plugin-npm-extended-stable-workflow.test.ts
+      - name: Run supported OpenCraw suite
+        run: pnpm test:opencraw
 
   build:
     name: Production build
@@ -85,6 +96,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
+          ref: ${{ inputs.target_sha || github.sha }}
           persist-credentials: false
           submodules: false
 
@@ -152,6 +164,9 @@ jobs:
 
       - name: Detect committed private keys
         run: pre-commit run --all-files detect-private-key
+
+      - name: Validate retained workflow policy
+        run: pnpm validation:policy
 
       - name: Validate and audit workflows
         run: pnpm check:workflows

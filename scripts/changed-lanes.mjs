@@ -7,8 +7,6 @@ import { isDirectRunUrl } from "./lib/direct-run.mjs";
 import { resolveMergeHeadDiffBase } from "./lib/merge-head-diff-base.mjs";
 
 const GIT_OUTPUT_MAX_BUFFER = 64 * 1024 * 1024;
-const IMPLAUSIBLE_NO_MERGE_BASE_DIFF_PATHS = 200;
-const RAW_SYNC_CHANGED_LANES_ENV = "OPENCLAW_CHANGED_LANES_RAW_SYNC";
 
 const SCRIPTS_TYPECHECK_PATH_RE =
   /^(?:scripts\/.*\.(?:[cm]?ts|[cm]?tsx)|tsconfig\.scripts\.json)$/u;
@@ -304,7 +302,6 @@ export function listChangedPathsFromGit(params) {
     return [];
   }
   let rangePaths;
-  let noMergeBase = false;
   try {
     // oxlint-disable-next-line typescript/no-base-to-string, typescript/restrict-template-expressions -- resolveMergeHeadDiffBase returns a git ref string when present.
     rangePaths = runGitNameOnlyDiff([`${base}...${head}`], cwd);
@@ -312,7 +309,6 @@ export function listChangedPathsFromGit(params) {
     if (!isGitNoMergeBaseError(error)) {
       throw error;
     }
-    noMergeBase = true;
     // oxlint-disable-next-line typescript/no-base-to-string, typescript/restrict-template-expressions -- resolveMergeHeadDiffBase returns a git ref string when present.
     rangePaths = runGitNameOnlyDiff([`${base}..${head}`], cwd);
   }
@@ -324,16 +320,6 @@ export function listChangedPathsFromGit(params) {
     ...runGitNameOnlyDiff(["--diff-filter=ACMRD"], cwd),
     ...runGitLsFiles(["--others", "--exclude-standard"], cwd),
   ];
-  // Raw Crabbox syncs can have unrelated synthetic refs; prefer the synced
-  // worktree delta instead of turning that into an accidental whole-repo gate.
-  if (
-    noMergeBase &&
-    process.env[RAW_SYNC_CHANGED_LANES_ENV] === "1" &&
-    worktreePaths.length > 0 &&
-    rangePaths.length > IMPLAUSIBLE_NO_MERGE_BASE_DIFF_PATHS
-  ) {
-    rangePaths = [];
-  }
   return [...new Set([...rangePaths, ...worktreePaths])].toSorted((left, right) =>
     left.localeCompare(right),
   );

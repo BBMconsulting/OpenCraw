@@ -28,15 +28,11 @@ function buildCiDispatchArgs(record) {
   return [
     "workflow",
     "run",
-    "ci.yml",
+    "opencraw-ci.yml",
     "--ref",
     record.headRefName,
     "-f",
-    `target_ref=${record.headRefOid}`,
-    "-f",
-    "release_gate=true",
-    "-f",
-    `pull_request_number=${record.pr}`,
+    "target_sha=" + record.headRefOid,
   ];
 }
 
@@ -49,7 +45,7 @@ function listCiRuns(headRefOid) {
         "--commit",
         headRefOid,
         "--workflow",
-        "ci.yml",
+        "opencraw-ci.yml",
         "--event",
         "workflow_dispatch",
         "--limit",
@@ -179,7 +175,7 @@ async function main(argv = process.argv.slice(2)) {
       "run_url=pending (GitHub accepted the dispatch, but Actions has not indexed it yet)",
     );
     console.log(
-      `inspect_with=gh run list --commit ${record.headRefOid} --workflow ci.yml --event workflow_dispatch`,
+      `inspect_with=gh run list --commit ${record.headRefOid} --workflow opencraw-ci.yml --event workflow_dispatch`,
     );
   }
 }

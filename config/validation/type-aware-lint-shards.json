@@ -1,0 +1,442 @@
+{
+  "schemaVersion": 1,
+  "execution": {
+    "concurrency": 1,
+    "reason": "CrawDevAi has 15 GiB RAM and hosts Primary and Rescue; type-aware shards run serially."
+  },
+  "eligibleRoots": [
+    "src",
+    "ui",
+    "packages",
+    "extensions",
+    "scripts",
+    "test"
+  ],
+  "shards": [
+    {
+      "id": "core-agents-embedded",
+      "owner": "agent embedded runtime",
+      "tsconfig": "config/tsconfig/oxlint.core.json",
+      "includePrefixes": [
+        "src/agents/embedded-agent-runner"
+      ]
+    },
+    {
+      "id": "core-agents-tools",
+      "owner": "agent tools",
+      "tsconfig": "config/tsconfig/oxlint.core.json",
+      "includePrefixes": [
+        "src/agents/tools"
+      ]
+    },
+    {
+      "id": "core-agents-sessions",
+      "owner": "agent sessions",
+      "tsconfig": "config/tsconfig/oxlint.core.json",
+      "includePrefixes": [
+        "src/agents/sessions"
+      ]
+    },
+    {
+      "id": "core-agents-cli",
+      "owner": "agent CLI runtimes",
+      "tsconfig": "config/tsconfig/oxlint.core.json",
+      "includePrefixes": [
+        "src/agents/cli-runner"
+      ]
+    },
+    {
+      "id": "core-agents-rest",
+      "owner": "remaining agent runtime",
+      "tsconfig": "config/tsconfig/oxlint.core.json",
+      "includePrefixes": [
+        "src/agents"
+      ],
+      "excludePrefixes": [
+        "src/agents/embedded-agent-runner",
+        "src/agents/tools",
+        "src/agents/sessions",
+        "src/agents/cli-runner"
+      ]
+    },
+    {
+      "id": "core-auto-reply",
+      "owner": "auto-reply",
+      "tsconfig": "config/tsconfig/oxlint.core.json",
+      "includePrefixes": [
+        "src/auto-reply"
+      ]
+    },
+    {
+      "id": "core-gateway",
+      "owner": "gateway",
+      "tsconfig": "config/tsconfig/oxlint.core.json",
+      "includePrefixes": [
+        "src/gateway"
+      ]
+    },
+    {
+      "id": "core-plugin-platform",
+      "owner": "plugin platform and SDK",
+      "tsconfig": "config/tsconfig/oxlint.core.json",
+      "includePrefixes": [
+        "src/plugins",
+        "src/plugin-sdk"
+      ]
+    },
+    {
+      "id": "core-channels",
+      "owner": "channel platform",
+      "tsconfig": "config/tsconfig/oxlint.core.json",
+      "includePrefixes": [
+        "src/channels"
+      ]
+    },
+    {
+      "id": "core-system-agent",
+      "owner": "system-agent control plane",
+      "tsconfig": "config/tsconfig/oxlint.core.json",
+      "includePrefixes": [
+        "src/system-agent"
+      ]
+    },
+    {
+      "id": "core-config",
+      "owner": "configuration",
+      "tsconfig": "config/tsconfig/oxlint.core.json",
+      "includePrefixes": [
+        "src/config"
+      ]
+    },
+    {
+      "id": "core-infra",
+      "owner": "infrastructure",
+      "tsconfig": "config/tsconfig/oxlint.core.json",
+      "includePrefixes": [
+        "src/infra"
+      ]
+    },
+    {
+      "id": "core-security",
+      "owner": "security and secrets",
+      "tsconfig": "config/tsconfig/oxlint.core.json",
+      "includePrefixes": [
+        "src/security",
+        "src/secrets"
+      ]
+    },
+    {
+      "id": "core-commands-cli",
+      "owner": "commands and CLI",
+      "tsconfig": "config/tsconfig/oxlint.core.json",
+      "includePrefixes": [
+        "src/commands",
+        "src/cli"
+      ]
+    },
+    {
+      "id": "core-automation",
+      "owner": "automation, tasks, and skills",
+      "tsconfig": "config/tsconfig/oxlint.core.json",
+      "includePrefixes": [
+        "src/cron",
+        "src/skills",
+        "src/tasks",
+        "src/hooks",
+        "src/commitments",
+        "src/boards"
+      ]
+    },
+    {
+      "id": "core-media",
+      "owner": "media and realtime capabilities",
+      "tsconfig": "config/tsconfig/oxlint.core.json",
+      "includePrefixes": [
+        "src/media",
+        "src/media-understanding",
+        "src/media-generation",
+        "src/image-generation",
+        "src/image-ops",
+        "src/video-generation",
+        "src/music-generation",
+        "src/talk",
+        "src/tts",
+        "src/realtime-transcription",
+        "src/meeting-bot"
+      ]
+    },
+    {
+      "id": "core-src-rest",
+      "owner": "remaining core source",
+      "tsconfig": "config/tsconfig/oxlint.core.json",
+      "includePrefixes": [
+        "src"
+      ],
+      "excludePrefixes": [
+        "src/agents",
+        "src/auto-reply",
+        "src/gateway",
+        "src/plugins",
+        "src/plugin-sdk",
+        "src/channels",
+        "src/system-agent",
+        "src/config",
+        "src/infra",
+        "src/security",
+        "src/secrets",
+        "src/commands",
+        "src/cli",
+        "src/cron",
+        "src/skills",
+        "src/tasks",
+        "src/hooks",
+        "src/commitments",
+        "src/boards",
+        "src/media",
+        "src/media-understanding",
+        "src/media-generation",
+        "src/image-generation",
+        "src/image-ops",
+        "src/video-generation",
+        "src/music-generation",
+        "src/talk",
+        "src/tts",
+        "src/realtime-transcription",
+        "src/meeting-bot"
+      ]
+    },
+    {
+      "id": "core-ui",
+      "owner": "Control UI",
+      "tsconfig": "config/tsconfig/oxlint.core.json",
+      "includePrefixes": [
+        "ui"
+      ]
+    },
+    {
+      "id": "core-packages",
+      "owner": "shared packages",
+      "tsconfig": "config/tsconfig/oxlint.core.json",
+      "includePrefixes": [
+        "packages"
+      ]
+    },
+    {
+      "id": "extensions-channel-discord-telegram",
+      "owner": "Discord and Telegram extensions",
+      "tsconfig": "config/tsconfig/oxlint.extensions.json",
+      "includePrefixes": [
+        "extensions/discord",
+        "extensions/telegram"
+      ]
+    },
+    {
+      "id": "extensions-channel-collaboration",
+      "owner": "collaboration channel extensions",
+      "tsconfig": "config/tsconfig/oxlint.extensions.json",
+      "includePrefixes": [
+        "extensions/slack",
+        "extensions/matrix",
+        "extensions/whatsapp",
+        "extensions/qqbot",
+        "extensions/feishu",
+        "extensions/msteams"
+      ]
+    },
+    {
+      "id": "extensions-channel-messaging",
+      "owner": "messaging channel extensions",
+      "tsconfig": "config/tsconfig/oxlint.extensions.json",
+      "includePrefixes": [
+        "extensions/imessage",
+        "extensions/mattermost",
+        "extensions/signal",
+        "extensions/line",
+        "extensions/googlechat",
+        "extensions/zalouser",
+        "extensions/zalo",
+        "extensions/nextcloud-talk",
+        "extensions/clickclack",
+        "extensions/nostr",
+        "extensions/irc",
+        "extensions/twitch",
+        "extensions/synology-chat",
+        "extensions/tlon",
+        "extensions/sms",
+        "extensions/teams-meetings",
+        "extensions/zoom-meetings",
+        "extensions/google-meet"
+      ]
+    },
+    {
+      "id": "extensions-model-providers",
+      "owner": "model provider extensions",
+      "tsconfig": "config/tsconfig/oxlint.extensions.json",
+      "includePrefixes": [
+        "extensions/codex",
+        "extensions/openai",
+        "extensions/xai",
+        "extensions/google",
+        "extensions/anthropic",
+        "extensions/ollama",
+        "extensions/acpx",
+        "extensions/copilot",
+        "extensions/github-copilot",
+        "extensions/openrouter",
+        "extensions/deepinfra",
+        "extensions/minimax",
+        "extensions/amazon-bedrock",
+        "extensions/moonshot",
+        "extensions/lmstudio",
+        "extensions/firecrawl",
+        "extensions/elevenlabs",
+        "extensions/open-prose"
+      ]
+    },
+    {
+      "id": "extensions-qa-platform",
+      "owner": "QA and browser platform extensions",
+      "tsconfig": "config/tsconfig/oxlint.extensions.json",
+      "includePrefixes": [
+        "extensions/qa-lab",
+        "extensions/browser",
+        "extensions/diagnostics-otel",
+        "extensions/qa-channel",
+        "extensions/file-transfer",
+        "extensions/diffs"
+      ]
+    },
+    {
+      "id": "extensions-rest",
+      "owner": "remaining extensions",
+      "tsconfig": "config/tsconfig/oxlint.extensions.json",
+      "includePrefixes": [
+        "extensions"
+      ],
+      "excludePrefixes": [
+        "extensions/discord",
+        "extensions/telegram",
+        "extensions/slack",
+        "extensions/matrix",
+        "extensions/whatsapp",
+        "extensions/qqbot",
+        "extensions/feishu",
+        "extensions/msteams",
+        "extensions/imessage",
+        "extensions/mattermost",
+        "extensions/signal",
+        "extensions/line",
+        "extensions/googlechat",
+        "extensions/zalouser",
+        "extensions/zalo",
+        "extensions/nextcloud-talk",
+        "extensions/clickclack",
+        "extensions/nostr",
+        "extensions/irc",
+        "extensions/twitch",
+        "extensions/synology-chat",
+        "extensions/tlon",
+        "extensions/sms",
+        "extensions/teams-meetings",
+        "extensions/zoom-meetings",
+        "extensions/google-meet",
+        "extensions/codex",
+        "extensions/openai",
+        "extensions/xai",
+        "extensions/google",
+        "extensions/anthropic",
+        "extensions/ollama",
+        "extensions/acpx",
+        "extensions/copilot",
+        "extensions/github-copilot",
+        "extensions/openrouter",
+        "extensions/deepinfra",
+        "extensions/minimax",
+        "extensions/amazon-bedrock",
+        "extensions/moonshot",
+        "extensions/lmstudio",
+        "extensions/firecrawl",
+        "extensions/elevenlabs",
+        "extensions/open-prose",
+        "extensions/qa-lab",
+        "extensions/browser",
+        "extensions/diagnostics-otel",
+        "extensions/qa-channel",
+        "extensions/file-transfer",
+        "extensions/diffs"
+      ]
+    },
+    {
+      "id": "scripts",
+      "owner": "repository tooling",
+      "tsconfig": "config/tsconfig/oxlint.scripts.json",
+      "includePrefixes": [
+        "scripts"
+      ]
+    },
+    {
+      "id": "tests-tooling",
+      "owner": "repository tooling tests",
+      "tsconfig": "test/tsconfig/tsconfig.test.root.json",
+      "includePrefixes": [
+        "test/scripts"
+      ],
+      "allowRules": [
+        "typescript/unbound-method",
+        "typescript/no-base-to-string",
+        "eslint/no-promise-executor-return",
+        "eslint/no-implicit-coercion",
+        "eslint/no-shadow",
+        "unicorn/no-array-sort",
+        "typescript/require-array-sort-compare",
+        "typescript/restrict-template-expressions",
+        "oxc/no-map-spread",
+        "typescript/no-unnecessary-template-expression",
+        "unicorn/no-unreadable-array-destructuring",
+        "eslint/no-regex-spaces",
+        "typescript/prefer-promise-reject-errors",
+        "typescript/no-unnecessary-type-conversion",
+        "typescript/no-unnecessary-boolean-literal-compare",
+        "eslint/no-useless-escape",
+        "unicorn/prefer-structured-clone",
+        "eslint/no-useless-assignment",
+        "unicorn/no-array-reverse",
+        "typescript/no-implied-eval"
+      ],
+      "allowReason": "Inherited test-only idioms and deliberate violation fixtures were outside the historical lint gate; the remaining type-aware rules are enforced without weakening existing production, extension, or script shards.",
+      "tracking": "docs/development/opencraw-validation.md#test-root-lint-policy",
+      "reportUnusedDisableDirectives": false
+    },
+    {
+      "id": "tests-runtime",
+      "owner": "root runtime and integration tests",
+      "tsconfig": "test/tsconfig/tsconfig.test.root.json",
+      "includePrefixes": [
+        "test"
+      ],
+      "excludePrefixes": [
+        "test/scripts"
+      ],
+      "allowRules": [
+        "eslint/no-promise-executor-return",
+        "eslint/no-unused-vars",
+        "typescript/use-unknown-in-catch-callback-variable",
+        "eslint/no-useless-concat",
+        "typescript/adjacent-overload-signatures",
+        "eslint/no-unmodified-loop-condition",
+        "typescript/unbound-method",
+        "typescript/no-base-to-string",
+        "eslint/no-shadow",
+        "eslint/prefer-const",
+        "unicorn/no-array-sort",
+        "oxc/no-map-spread",
+        "typescript/no-floating-promises",
+        "typescript/no-unnecessary-type-arguments",
+        "typescript/no-misused-promises"
+      ],
+      "allowReason": "Inherited test-only idioms and deliberate violation fixtures were outside the historical lint gate; the remaining type-aware rules are enforced without weakening existing production, extension, or script shards.",
+      "tracking": "docs/development/opencraw-validation.md#test-root-lint-policy",
+      "reportUnusedDisableDirectives": false
+    }
+  ]
+}

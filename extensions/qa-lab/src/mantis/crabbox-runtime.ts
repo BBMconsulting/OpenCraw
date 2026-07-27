@@ -1,8 +1,5 @@
-// Qa Lab plugin module implements crabbox runtime behavior.
-import { spawn, type SpawnOptions } from "node:child_process";
-import path from "node:path";
-import { pathExists } from "openclaw/plugin-sdk/security-runtime";
-import { trimToValue } from "../mantis-options.runtime.js";
+// Compatibility adapter retained for inherited QA-lab imports.
+import type { SpawnOptions } from "node:child_process";
 
 type CommandResult = {
   stderr: string;
@@ -14,6 +11,9 @@ export type CommandRunner = (
   args: readonly string[],
   options: SpawnOptions,
 ) => Promise<CommandResult>;
+
+const disabledMessage =
+  "OpenCraw fork policy disables external validation workers; run validation directly on CrawDevAi.";
 
 export type CrabboxInspect = {
   host?: string;
@@ -27,85 +27,39 @@ export type CrabboxInspect = {
   state?: string;
 };
 
-export async function defaultCommandRunner(
-  command: string,
-  args: readonly string[],
-  options: SpawnOptions,
-): Promise<CommandResult> {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
-      ...options,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    let stdout = "";
-    let stderr = "";
-    child.stdout?.setEncoding("utf8");
-    child.stderr?.setEncoding("utf8");
-    child.stdout?.on("data", (text: string) => {
-      stdout += text;
-      if (options.stdio === "inherit") {
-        process.stdout.write(text);
-      }
-    });
-    child.stderr?.on("data", (text: string) => {
-      stderr += text;
-      if (options.stdio === "inherit") {
-        process.stderr.write(text);
-      }
-    });
-    child.on("error", reject);
-    child.on("close", (code, signal) => {
-      if (code === 0) {
-        resolve({ stdout, stderr });
-        return;
-      }
-      const detail = signal ? `signal ${signal}` : `exit code ${code ?? "unknown"}`;
-      reject(new Error(`${command} ${args.join(" ")} failed with ${detail}`));
-    });
-  });
+function disabled(): never {
+  throw new Error(disabledMessage);
 }
 
-export async function resolveCrabboxBin(params: {
+export async function defaultCommandRunner(
+  _command: string,
+  _args: readonly string[],
+  _options: SpawnOptions,
+): Promise<CommandResult> {
+  return disabled();
+}
+
+export async function resolveCrabboxBin(_params: {
   env: NodeJS.ProcessEnv;
   envName: string;
   explicit?: string;
   repoRoot: string;
-}) {
-  const configured = trimToValue(params.explicit) ?? trimToValue(params.env[params.envName]);
-  if (configured) {
-    return configured;
-  }
-  const sibling = path.resolve(params.repoRoot, "../crabbox/bin/crabbox");
-  if (await pathExists(sibling)) {
-    return sibling;
-  }
-  return "crabbox";
+}): Promise<string> {
+  return disabled();
 }
 
-function extractLeaseId(output: string) {
-  return output.match(/\b(?:cbx_[a-f0-9]+|tbx_[A-Za-z0-9_-]+)\b/u)?.[0];
-}
-
-export function shellQuote(value: string) {
-  return `'${value.replaceAll("'", "'\\''")}'`;
-}
-
-export async function runCommand(params: {
+export async function runCommand(_params: {
   args: readonly string[];
   command: string;
   cwd: string;
   env: NodeJS.ProcessEnv;
   runner: CommandRunner;
   stdio?: "inherit" | "pipe";
-}) {
-  return params.runner(params.command, params.args, {
-    cwd: params.cwd,
-    env: params.env,
-    stdio: params.stdio ?? "pipe",
-  });
+}): Promise<CommandResult> {
+  return disabled();
 }
 
-export async function warmupCrabbox(params: {
+export async function warmupCrabbox(_params: {
   crabboxBin: string;
   cwd: string;
   env: NodeJS.ProcessEnv;
@@ -115,94 +69,40 @@ export async function warmupCrabbox(params: {
   provider: string;
   runner: CommandRunner;
   ttl: string;
-}) {
-  const marketArgs = params.market ? ["--market", params.market] : [];
-  const result = await runCommand({
-    command: params.crabboxBin,
-    args: [
-      "warmup",
-      "--provider",
-      params.provider,
-      "--desktop",
-      "--browser",
-      "--class",
-      params.machineClass,
-      ...marketArgs,
-      "--idle-timeout",
-      params.idleTimeout,
-      "--ttl",
-      params.ttl,
-    ],
-    cwd: params.cwd,
-    env: params.env,
-    runner: params.runner,
-    stdio: "inherit",
-  });
-  const leaseId = extractLeaseId(`${result.stdout}\n${result.stderr}`);
-  if (!leaseId) {
-    throw new Error("Crabbox warmup did not print a lease id.");
-  }
-  return leaseId;
+}): Promise<string> {
+  return disabled();
 }
 
-export async function inspectCrabbox(params: {
+export async function inspectCrabbox(_params: {
   crabboxBin: string;
   cwd: string;
   env: NodeJS.ProcessEnv;
   leaseId: string;
   provider: string;
   runner: CommandRunner;
-}) {
-  const result = await runCommand({
-    command: params.crabboxBin,
-    args: ["inspect", "--provider", params.provider, "--id", params.leaseId, "--json"],
-    cwd: params.cwd,
-    env: params.env,
-    runner: params.runner,
-  });
-  return JSON.parse(result.stdout) as CrabboxInspect;
+}): Promise<CrabboxInspect> {
+  return disabled();
 }
 
-export async function stopCrabbox(params: {
+export async function stopCrabbox(_params: {
   crabboxBin: string;
   cwd: string;
   env: NodeJS.ProcessEnv;
   leaseId: string;
   provider: string;
   runner: CommandRunner;
-}) {
-  await runCommand({
-    command: params.crabboxBin,
-    args: ["stop", "--provider", params.provider, params.leaseId],
-    cwd: params.cwd,
-    env: params.env,
-    runner: params.runner,
-    stdio: "inherit",
-  });
+}): Promise<void> {
+  return disabled();
 }
 
-export function sshCommand(params: { inspect: CrabboxInspect }) {
-  const { host, sshKey, sshPort, sshUser } = params.inspect;
-  if (!host || !sshKey || !sshUser) {
-    throw new Error("Crabbox inspect output is missing SSH copy details.");
-  }
-  return {
-    host,
-    sshArgs: [
-      "ssh",
-      "-i",
-      shellQuote(sshKey),
-      "-p",
-      sshPort ?? "22",
-      "-o",
-      "BatchMode=yes",
-      "-o",
-      "ConnectTimeout=15",
-      "-o",
-      "StrictHostKeyChecking=no",
-      "-o",
-      "UserKnownHostsFile=/dev/null",
-    ].join(" "),
-    sshUser,
-  };
+export function shellQuote(_value: string): string {
+  return disabled();
+}
+
+export function sshCommand(_params: { inspect: CrabboxInspect }): {
+  host: string;
+  sshArgs: string;
+  sshUser: string;
+} {
+  return disabled();
 }

@@ -5,19 +5,10 @@ import path from "node:path";
 import { isDirectRunUrl } from "./lib/direct-run.mjs";
 import { execGhApiRead, plainGhEnv } from "./lib/plain-gh.mjs";
 
-export const SCHEDULED_HOSTED_WORKFLOWS = [
-  "Blacksmith Testbox",
-  "Blacksmith ARM Testbox",
-  "Blacksmith Build Artifacts Testbox",
-  "Workflow Sanity",
-];
-const CI_WORKFLOW_PATH = ".github/workflows/ci.yml";
-const BUILD_ARTIFACTS_WORKFLOW = "Blacksmith Build Artifacts Testbox";
-const ARTIFACT_FALLBACK_REQUIRED_WORKFLOWS = [
-  "Blacksmith Testbox",
-  "Blacksmith ARM Testbox",
-  "Workflow Sanity",
-];
+export const SCHEDULED_HOSTED_WORKFLOWS = [];
+const CI_WORKFLOW_PATH = ".github/workflows/opencraw-ci.yml";
+const BUILD_ARTIFACTS_WORKFLOW = "";
+const ARTIFACT_FALLBACK_REQUIRED_WORKFLOWS = [];
 // Full workflow-run objects are large enough for a 100-row response to exceed
 // the Octopool relay cap on busy SHAs. Keep each REST page bounded and retain
 // the existing 1,000-result search window through pagination.
@@ -115,7 +106,7 @@ function isReleaseGateCiRun(run, sha) {
     run?.event === "workflow_dispatch" &&
     run?.head_sha === sha &&
     String(run?.path ?? "").split("@", 1)[0] === CI_WORKFLOW_PATH &&
-    run?.display_title === `CI release gate ${sha}`
+    run?.display_title === `OpenCraw CI retained gate ${sha}`
   );
 }
 
@@ -127,7 +118,7 @@ function matchingAuthoritativeRuns(runs, workflowName, sha, allowManual = true) 
     if (run?.event === "pull_request") {
       return run?.name === workflowName;
     }
-    return allowManual && workflowName === "CI" && isReleaseGateCiRun(run, sha);
+    return allowManual && workflowName === "OpenCraw CI" && isReleaseGateCiRun(run, sha);
   });
 }
 
@@ -220,7 +211,7 @@ function ensureCommitAvailable(sha, execGit) {
 
 function isQualifyingCiReuseRun(run) {
   if (run?.event === "pull_request") {
-    return run?.name === "CI";
+    return run?.name === "OpenCraw CI";
   }
   return isReleaseGateCiRun(run, run?.head_sha);
 }
@@ -351,11 +342,12 @@ function successfulRunOrThrow(
   { allowManual = true, nowMs = Date.now(), ciGateJobs = [] } = {},
 ) {
   const matchingRuns = matchingAuthoritativeRuns(runs, workflowName, sha, allowManual);
-  const run = workflowName === "CI" ? preferredCiRun(matchingRuns, nowMs) : latestRun(matchingRuns);
+  const run =
+    workflowName === "OpenCraw CI" ? preferredCiRun(matchingRuns, nowMs) : latestRun(matchingRuns);
   if (isSuccessfulRecentRun(run, nowMs)) {
     return run;
   }
-  if (workflowName === "CI") {
+  if (workflowName === "OpenCraw CI") {
     if (isGateProvenInProgressRun(run, ciGateJobs, nowMs)) {
       return run;
     }
@@ -494,7 +486,7 @@ export function collectHostedGateEvidence({
     if (!changelogOnly) {
       workflows.push(
         ciRun ??
-          successfulRunOrThrow(workflowRuns, "CI", evidenceSha, {
+          successfulRunOrThrow(workflowRuns, "OpenCraw CI", evidenceSha, {
             allowManual,
             nowMs,
             // Gate proof only vouches for the exact head under verification.
@@ -519,7 +511,7 @@ export function collectHostedGateEvidence({
       ) {
         fallbackCoveredWorkflows.push({
           name: workflowName,
-          coveredBy: "CI release gate",
+          coveredBy: "OpenCraw CI retained gate",
           reason: "scheduled workflow is queued",
         });
         continue;
@@ -538,7 +530,7 @@ export function collectHostedGateEvidence({
   let ciReuse;
   if (!changelogOnly) {
     try {
-      ciRun = successfulRunOrThrow(workflowRuns, "CI", sha, {
+      ciRun = successfulRunOrThrow(workflowRuns, "OpenCraw CI", sha, {
         allowManual: true,
         nowMs,
         ciGateJobs,
@@ -697,7 +689,7 @@ function loadCiReuseCandidateRuns(repo, headBranch) {
       "--repo",
       repo,
       "--workflow",
-      "ci.yml",
+      "opencraw-ci.yml",
       "--branch",
       headBranch,
       "--limit",
@@ -777,7 +769,7 @@ function loadCiGateJobs(repo, workflowRuns, sha, nowMs = Date.now()) {
   // Only an in-progress exact-head CI run can benefit from gate proof.
   const candidates = workflowRuns.filter(
     (run) =>
-      run?.name === "CI" &&
+      run?.name === "OpenCraw CI" &&
       run?.head_sha === sha &&
       (run?.status === "in_progress" || run?.status === "queued") &&
       isRecentRun(run, nowMs),

@@ -20,9 +20,8 @@ const PROCESS_GROUP_EXIT_POLL_MS = 25;
 const DEFAULT_SPLIT_CORE_SHARD_CONCURRENCY = 4;
 const FAST_LOCAL_CHECK_MIN_CPUS = 12;
 const FAST_LOCAL_CHECK_MIN_MEMORY_BYTES = 48 * 1024 ** 3;
-// CI runners are dedicated: Blacksmith's 16 vCPU class carries 32GB, which the
-// local-Mac threshold above misreads as too small and forces serial shards.
-// Three concurrent oxlint shards peak well under 24GB.
+// Dedicated retained-CI runners can use bounded parallelism when their
+// measured resources meet these thresholds.
 const CI_PARALLEL_MIN_CPUS = 8;
 const CI_PARALLEL_MIN_MEMORY_BYTES = 24 * 1024 ** 3;
 const EXTENSION_TS_CONFIG = "config/tsconfig/oxlint.extensions.json";
@@ -150,13 +149,11 @@ export function shouldRunOxlintShardsSerial({
     return false;
   }
   const localCheckMode = env.OPENCLAW_LOCAL_CHECK_MODE?.trim().toLowerCase();
-  if (!isRemoteChangedGateEnv(env)) {
-    if (localCheckMode === "full" || localCheckMode === "fast") {
-      return false;
-    }
-    if (localCheckMode === "throttled" || localCheckMode === "low-memory") {
-      return true;
-    }
+  if (localCheckMode === "full" || localCheckMode === "fast") {
+    return false;
+  }
+  if (localCheckMode === "throttled" || localCheckMode === "low-memory") {
+    return true;
   }
   const resources = resolveHostResources(hostResources);
   if (env.CI === "true" || env.GITHUB_ACTIONS === "true") {
@@ -168,12 +165,6 @@ export function shouldRunOxlintShardsSerial({
   return (
     resources.totalMemoryBytes < FAST_LOCAL_CHECK_MIN_MEMORY_BYTES ||
     resources.logicalCpuCount < FAST_LOCAL_CHECK_MIN_CPUS
-  );
-}
-
-function isRemoteChangedGateEnv(env) {
-  return (
-    env.OPENCLAW_CHECK_CHANGED_REMOTE_CHILD === "1" || env.OPENCLAW_CHANGED_LANES_RAW_SYNC === "1"
   );
 }
 

@@ -14,9 +14,6 @@ import {
   listStagedChangedPaths,
 } from "../../scripts/changed-lanes.mjs";
 import {
-  buildChangedCheckCrabboxArgs,
-  changedCheckLocalDependenciesReady,
-  changedCheckRequiresRemote,
   cleanupCorepackPnpmShimDir,
   createChangedCheckChildEnv,
   createChangedCheckPlan,
@@ -24,7 +21,6 @@ import {
   createTargetedCoreLintCommand,
   createTargetedExtensionLintCommand,
   createTargetedScriptLintCommand,
-  shouldDelegateChangedCheckToCrabbox,
   shouldRunAppcastOwnerTest,
   shouldRunCanvasA2uiNativeResourceCheck,
   shouldRunControlUiI18nVerify,
@@ -253,7 +249,7 @@ describe("scripts/changed-lanes", () => {
     expect(result.stderr.trim()).toBe("[check:changed] no changed paths; nothing to run");
   });
 
-  it("delegates when the local checkout cannot resolve the default base ref", () => {
+  it("fails locally when the checkout cannot resolve the default base ref", () => {
     const dir = makeTempRepoRoot(tempDirs, "openclaw-check-changed-missing-base-");
     git(dir, ["init", "-q", "--initial-branch=main"]);
     writeFileSync(path.join(dir, "README.md"), "initial\n", "utf8");
@@ -279,18 +275,16 @@ describe("scripts/changed-lanes", () => {
         ...createNestedGitEnv(),
         CI: "",
         GITHUB_ACTIONS: "",
-        OPENCLAW_CHECK_CHANGED_REMOTE_CHILD: "",
-        OPENCLAW_TESTBOX: "1",
         PATH: `${binDir}:${process.env.PATH ?? ""}`,
       },
     });
 
-    expect(result.status).toBe(0);
-    expect(result.stderr).toContain("delegating to Blacksmith Testbox");
-    expect(result.stderr).not.toContain("ambiguous argument");
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("origin/main");
+    expect(result.stderr).not.toContain("delegating");
   });
 
-  it("delegates path-scoped release metadata when local diff refs are unavailable", () => {
+  it("runs path-scoped release metadata directly when diff refs are unavailable", () => {
     const dir = makeTempRepoRoot(tempDirs, "openclaw-check-changed-metadata-missing-base-");
     git(dir, ["init", "-q", "--initial-branch=main"]);
     writeFileSync(path.join(dir, "README.md"), "initial\n", "utf8");
@@ -322,15 +316,13 @@ describe("scripts/changed-lanes", () => {
           ...createNestedGitEnv(),
           CI: "",
           GITHUB_ACTIONS: "",
-          OPENCLAW_CHECK_CHANGED_REMOTE_CHILD: "",
-          OPENCLAW_TESTBOX: "",
           PATH: `${binDir}:${process.env.PATH ?? ""}`,
         },
       },
     );
 
     expect(result.status).toBe(0);
-    expect(result.stderr).toContain("delegating to Blacksmith Testbox");
+    expect(result.stderr).not.toContain("delegating");
   });
 
   it("rejects unknown changed lane options before treating them as paths", () => {
@@ -374,18 +366,6 @@ describe("scripts/changed-lanes", () => {
     expect(result.status).toBe(0);
     expect(result.stderr).toBe("");
     expect(parseChangedLaneOutput(result.stdout).paths).toEqual(["--github-output"]);
-  });
-
-  it("keeps changed check option-shaped paths intact after the separator", () => {
-    const args = buildChangedCheckCrabboxArgs(["--staged", "--", "--no-changes"], {
-      cwd: repoRoot,
-    });
-
-    expect(args.slice(args.indexOf("check:changed") + 1)).toEqual([
-      "--staged",
-      "--",
-      "--no-changes",
-    ]);
   });
 
   it("prints changed check dry-run commands", () => {
@@ -481,60 +461,6 @@ describe("scripts/changed-lanes", () => {
       "src/committed.ts",
       "src/feature.ts",
     ]);
-  });
-
-  it("prefers raw sync worktree paths over an implausibly broad no-merge-base diff", () => {
-    const dir = makeTempRepoRoot(tempDirs, "openclaw-changed-lanes-raw-sync-");
-    git(dir, ["init", "-q", "--initial-branch=main"]);
-    for (let index = 0; index < 250; index += 1) {
-      writeFileSync(path.join(dir, `baseline-${index}.txt`), "baseline\n", "utf8");
-    }
-    git(dir, ["add", "."]);
-    git(dir, [
-      "-c",
-      "user.email=test@example.com",
-      "-c",
-      "user.name=Test User",
-      "commit",
-      "-q",
-      "-m",
-      "initial",
-    ]);
-    git(dir, ["update-ref", "refs/remotes/origin/main", "HEAD"]);
-    git(dir, ["switch", "-q", "--orphan", "feature"]);
-    git(dir, [
-      "-c",
-      "user.email=test@example.com",
-      "-c",
-      "user.name=Test User",
-      "commit",
-      "-q",
-      "--allow-empty",
-      "-m",
-      "raw sync base",
-    ]);
-    mkdirSync(path.join(dir, "src"), { recursive: true });
-    writeFileSync(path.join(dir, "src", "feature.ts"), "export const value = 1;\n", "utf8");
-
-    const previousRawSync = process.env.OPENCLAW_CHANGED_LANES_RAW_SYNC;
-    delete process.env.OPENCLAW_CHANGED_LANES_RAW_SYNC;
-    try {
-      const normalPaths = listChangedPathsFromGit({ base: "origin/main", cwd: dir });
-      expect(normalPaths.length).toBeGreaterThan(200);
-      expect(normalPaths).toContain("baseline-0.txt");
-      expect(normalPaths).toContain("src/feature.ts");
-
-      process.env.OPENCLAW_CHANGED_LANES_RAW_SYNC = "1";
-      expect(listChangedPathsFromGit({ base: "origin/main", cwd: dir })).toEqual([
-        "src/feature.ts",
-      ]);
-    } finally {
-      if (previousRawSync === undefined) {
-        delete process.env.OPENCLAW_CHANGED_LANES_RAW_SYNC;
-      } else {
-        process.env.OPENCLAW_CHANGED_LANES_RAW_SYNC = previousRawSync;
-      }
-    }
   });
 
   it("includes committed and untracked added files in the changed format check", () => {
@@ -669,43 +595,6 @@ describe("scripts/changed-lanes", () => {
         mergeHeadFirstParent: true,
       }),
     ).toEqual(["src/pr.ts"]);
-  });
-
-  it("ignores local Crabbox metadata in the default local diff", () => {
-    const dir = makeTempRepoRoot(tempDirs, "openclaw-changed-lanes-crabbox-");
-    git(dir, ["init", "-q", "--initial-branch=main"]);
-    writeFileSync(path.join(dir, ".gitignore"), ".crabbox/\n", "utf8");
-    writeFileSync(path.join(dir, "README.md"), "initial\n", "utf8");
-    git(dir, ["add", ".gitignore", "README.md"]);
-    git(dir, [
-      "-c",
-      "user.email=test@example.com",
-      "-c",
-      "user.name=Test User",
-      "commit",
-      "-q",
-      "-m",
-      "initial",
-    ]);
-
-    mkdirSync(path.join(dir, ".crabbox"), { recursive: true });
-    writeFileSync(path.join(dir, ".crabbox", "capture-files.txt"), "stdout.log\n", "utf8");
-    writeFileSync(path.join(dir, ".crabbox", "capture-manifest.txt"), "stdout.log\t12\n", "utf8");
-
-    const output = execFileSync(
-      process.execPath,
-      [path.join(repoRoot, "scripts", "changed-lanes.mjs"), "--json", "--base", "HEAD"],
-      {
-        cwd: dir,
-        encoding: "utf8",
-        env: createNestedGitEnv(),
-      },
-    );
-
-    const result = parseChangedLaneOutput(output);
-
-    expect(result.paths).toEqual([]);
-    expectLanes(result.lanes, {});
   });
 
   it("includes deleted worktree files in the default local diff", () => {
@@ -1099,156 +988,9 @@ describe("scripts/changed-lanes", () => {
     expect(command.args).toEqual(["check:no-conflict-markers"]);
   });
 
-  it("delegates heavy changed gates after classifying their lanes", () => {
-    const result = detectChangedLanes(["src/config/config.ts"]);
-    expect(
-      shouldDelegateChangedCheckToCrabbox(
-        ["--base", "origin/main"],
-        { PATH: "/usr/bin" },
-        { result },
-      ),
-    ).toBe(true);
-    expect(changedCheckRequiresRemote(result)).toBe(true);
-
-    expect(buildChangedCheckCrabboxArgs(["--base", "origin/main", "--head", "HEAD"])).toEqual([
-      "crabbox:run",
-      "--",
-      "--provider",
-      "blacksmith-testbox",
-      "--blacksmith-org",
-      "openclaw",
-      "--blacksmith-workflow",
-      ".github/workflows/ci-check-testbox.yml",
-      "--blacksmith-job",
-      "check",
-      "--blacksmith-ref",
-      "main",
-      "--idle-timeout",
-      "90m",
-      "--ttl",
-      "240m",
-      "--timing-json",
-      "--",
-      "env",
-      "OPENCLAW_CHECK_CHANGED_REMOTE_CHILD=1",
-      "OPENCLAW_CHANGED_LANES_RAW_SYNC=1",
-      "CI=1",
-      "PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN=false",
-      "corepack",
-      "pnpm",
-      "check:changed",
-      "--base",
-      "origin/main",
-      "--head",
-      "HEAD",
-    ]);
-  });
-
-  it("keeps small changed gates local only with a ready dependency install", () => {
-    const dir = makeTempRepoRoot(tempDirs, "openclaw-check-changed-local-route-");
-    const docsResult = detectChangedLanes(["docs/reference/test.md"]);
-    const noChangesResult = detectChangedLanes([]);
-    const metadataResult = detectChangedLanes(["CHANGELOG.md"]);
-    const mixedResult = detectChangedLanes(["CHANGELOG.md", "src/config/config.ts"]);
-
-    expect(changedCheckLocalDependenciesReady(dir)).toBe(false);
-    expect(shouldDelegateChangedCheckToCrabbox([], {}, { cwd: dir, result: noChangesResult })).toBe(
-      false,
-    );
-    expect(shouldDelegateChangedCheckToCrabbox([], {}, { cwd: dir, result: docsResult })).toBe(
-      true,
-    );
-
-    writeRepoFile(dir, "node_modules/.modules.yaml", "layoutVersion: 5\n");
-    writeRepoFile(dir, "node_modules/.bin/oxfmt", "#!/bin/sh\n");
-    writeRepoFile(dir, "node_modules/typescript/package.json", '{"name":"typescript"}\n');
-
-    expect(changedCheckLocalDependenciesReady(dir)).toBe(true);
-    for (const result of [docsResult, noChangesResult, metadataResult]) {
-      expect(changedCheckRequiresRemote(result)).toBe(false);
-      expect(shouldDelegateChangedCheckToCrabbox([], {}, { cwd: dir, result })).toBe(false);
-    }
-    for (const result of [docsResult, metadataResult]) {
-      expect(
-        shouldDelegateChangedCheckToCrabbox([], { OPENCLAW_TESTBOX: "1" }, { cwd: dir, result }),
-      ).toBe(true);
-    }
-    expect(changedCheckRequiresRemote(mixedResult)).toBe(true);
-  });
-
-  it("delegates generated docs baselines with heavy owner checks", () => {
-    for (const changedPath of [
-      "docs/.generated/plugin-sdk-api-baseline.sha256",
-      "docs/.generated/sqlite-session-transcript-schema-baseline.sha256",
-    ]) {
-      const result = detectChangedLanes([changedPath]);
-      expect(result.docsOnly).toBe(true);
-      expect(changedCheckRequiresRemote(result)).toBe(true);
-      expect(shouldDelegateChangedCheckToCrabbox([], {}, { cwd: repoRoot, result })).toBe(true);
-    }
-  });
-
-  it("delegates staged changed gates as explicit remote paths", () => {
-    const dir = makeTempRepoRoot(tempDirs, "openclaw-check-changed-staged-delegate-");
-    git(dir, ["init", "-q", "--initial-branch=main"]);
-    writeFileSync(path.join(dir, "README.md"), "initial\n", "utf8");
-    git(dir, ["add", "README.md"]);
-    git(dir, [
-      "-c",
-      "user.email=test@example.com",
-      "-c",
-      "user.name=Test User",
-      "commit",
-      "-q",
-      "-m",
-      "initial",
-    ]);
-    mkdirSync(path.join(dir, "src"), { recursive: true });
-    writeFileSync(path.join(dir, "src", "staged.ts"), "export const staged = 1;\n", "utf8");
-    git(dir, ["add", "src/staged.ts"]);
-
-    const args = buildChangedCheckCrabboxArgs(["--staged", "--timed"], { cwd: dir });
-    expect(args.slice(args.indexOf("check:changed") + 1)).toEqual([
-      "--timed",
-      "--base",
-      "HEAD",
-      "--head",
-      "HEAD",
-      "--",
-      "src/staged.ts",
-    ]);
-  });
-
-  it("delegates empty staged changed gates without rediscovering unstaged paths", () => {
-    const dir = makeTempRepoRoot(tempDirs, "openclaw-check-changed-empty-staged-delegate-");
-    git(dir, ["init", "-q", "--initial-branch=main"]);
-    writeFileSync(path.join(dir, "README.md"), "initial\n", "utf8");
-    git(dir, ["add", "README.md"]);
-    git(dir, [
-      "-c",
-      "user.email=test@example.com",
-      "-c",
-      "user.name=Test User",
-      "commit",
-      "-q",
-      "-m",
-      "initial",
-    ]);
-    mkdirSync(path.join(dir, "src"), { recursive: true });
-    writeFileSync(path.join(dir, "src", "unstaged.ts"), "export const unstaged = 1;\n", "utf8");
-
-    const args = buildChangedCheckCrabboxArgs(["--staged", "--timed"], { cwd: dir });
-
-    expect(args.slice(args.indexOf("check:changed") + 1)).toEqual(["--timed", "--no-changes"]);
-  });
-
-  it("does not delegate dry-run, CI, or remote-child changed gates", () => {
-    expect(shouldDelegateChangedCheckToCrabbox(["--dry-run"], {})).toBe(false);
-    expect(shouldDelegateChangedCheckToCrabbox([], { GITHUB_ACTIONS: "true" })).toBe(false);
-    expect(shouldDelegateChangedCheckToCrabbox([], { CI: "1" })).toBe(false);
-    expect(
-      shouldDelegateChangedCheckToCrabbox([], { OPENCLAW_CHECK_CHANGED_REMOTE_CHILD: "1" }),
-    ).toBe(false);
+  it("keeps heavy changed gates in the direct local plan", () => {
+    const plan = createChangedCheckPlan(detectChangedLanes(["src/config/config.ts"]));
+    expect(plan.commands.length).toBeGreaterThan(0);
   });
 
   it("runs changed-check lint lanes under the parent heavy-check lock", () => {
@@ -2165,7 +1907,7 @@ describe("scripts/changed-lanes", () => {
     expect(plan.commands.map((command) => command.name)).not.toContain("macOS app CI tests");
   });
 
-  it("runs app lint when SwiftLint is available in Testbox", () => {
+  it("runs app lint when SwiftLint is available", () => {
     const result = detectChangedLanes([
       "apps/shared/OpenClawKit/Sources/OpenClawProtocol/GatewayModels.swift",
     ]);

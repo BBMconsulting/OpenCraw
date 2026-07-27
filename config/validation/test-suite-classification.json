@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 1,
+  "categories": {
+    "normal-supported": {
+      "condition": "Run on Linux with the frozen repository dependency graph.",
+      "command": "pnpm test:opencraw",
+      "reason": "Curated deterministic OpenCraw unit coverage."
+    },
+    "integration-local": {
+      "condition": "Run only after the named local fixture, service, browser, or container prerequisite is available.",
+      "reason": "Requires integration infrastructure beyond the normal supported lane."
+    },
+    "upstream-compatibility": {
+      "condition": "Run during an explicitly directed upstream reconciliation or compatibility audit.",
+      "reason": "Protects inherited compatibility rather than the required normal OpenCraw result."
+    },
+    "platform-specific": {
+      "condition": "Run on the operating system or native toolchain named by the test.",
+      "reason": "The assertion is intentionally conditional on a non-canonical platform."
+    },
+    "live-provider": {
+      "condition": "Run only with explicitly approved live credentials and provider access.",
+      "reason": "Uses a live provider or credential-dependent interface."
+    },
+    "release-publication": {
+      "condition": "Run only in an explicitly authorized release, signing, packaging, or publication validation turn.",
+      "reason": "Exercises release or publication machinery outside the normal supported lane."
+    },
+    "expensive-manual": {
+      "condition": "Run only when its expensive fixture, benchmark, or manual scenario is specifically requested.",
+      "reason": "The workload is intentionally excluded from routine supported validation."
+    },
+    "quarantined": {
+      "condition": "Do not run until its active tracking record is resolved and the entry is reclassified.",
+      "reason": "Temporary quarantine; entries require an individual tracking reference."
+    },
+    "project-diagnostic": {
+      "condition": "Run through pnpm test or the owning Vitest/native project during a broad diagnostic investigation.",
+      "reason": "Owned by an inherited project configuration outside the compact supported lane."
+    }
+  },
+  "tracking": "docs/development/opencraw-validation.md#test-suite-classification",
+  "rules": [
+    {
+      "id": "fork-disabled-release-workflow-contracts",
+      "category": "release-publication",
+      "patterns": [
+        "src/dockerfile.test.ts"
+      ]
+    },
+    {
+      "id": "opencraw-supported-policy-regressions",
+      "category": "normal-supported",
+      "patterns": [
+        "test/scripts/opencraw-actions-policy.test.ts",
+        "test/scripts/opencraw-validation-manifests.test.ts",
+        "test/scripts/opencraw-external-validation-policy.test.ts"
+      ]
+    },
+    {
+      "id": "inherited-hosted-gate-compatibility",
+      "category": "upstream-compatibility",
+      "patterns": [
+        "test/scripts/verify-pr-hosted-gates.test.ts"
+      ]
+    },
+    {
+      "id": "canonical-linux-platform-conditionals",
+      "category": "platform-specific",
+      "patterns": [
+        "src/agents/sessions/windows-git-bash-path.test.ts",
+        "src/infra/exec-allowlist-matching.test.ts",
+        "src/infra/exec-allowlist-pattern.test.ts",
+        "src/infra/exec-safe-builtins.test.ts",
+        "src/infra/jsonl-socket.test.ts",
+        "src/process/exec.windows.integration.test.ts",
+        "src/install-sh-version.test.ts",
+        "src/node-host/invoke-system-run-plan.test.ts",
+        "src/node-host/invoke-system-run.test.ts",
+        "src/proxy-capture/store.sqlite.test.ts",
+        "src/security/audit-config-basics.test.ts",
+        "src/security/audit-config-include-perms.test.ts",
+        "src/security/fix.test.ts"
+      ]
+    },
+    {
+      "id": "canonical-environment-conditionals",
+      "category": "integration-local",
+      "patterns": [
+        "src/i18n/registry.test.ts"
+      ]
+    },
+    {
+      "id": "native-and-named-platform-tests",
+      "category": "platform-specific",
+      "patterns": [
+        "apps/**/Tests/**/*.swift",
+        "apps/**/src/test/**/*.kt",
+        "apps/**/src/androidTest/**/*.kt",
+        "**/*.windows.test.ts",
+        "**/*.win32.test.ts",
+        "**/*.darwin.test.ts",
+        "**/*.macos.test.ts",
+        "**/*.ios.test.ts",
+        "**/*.android.test.ts"
+      ]
+    },
+    {
+      "id": "live-provider-tests",
+      "category": "live-provider",
+      "patterns": [
+        "**/*.live.test.ts",
+        "**/*.live.test.tsx",
+        "**/live/**/*.test.ts"
+      ]
+    },
+    {
+      "id": "release-and-publication-tests",
+      "category": "release-publication",
+      "patterns": [
+        "**/*release*.test.ts",
+        "**/*signing*.test.ts",
+        "**/*publication*.test.ts",
+        "test/scripts/*package*.test.ts",
+        "test/scripts/*publish*.test.ts"
+      ]
+    },
+    {
+      "id": "integration-tests",
+      "category": "integration-local",
+      "patterns": [
+        "**/*.e2e.test.ts",
+        "**/*.e2e.test.tsx",
+        "**/*.integration.test.ts",
+        "scripts/e2e/**",
+        "test/e2e/**"
+      ]
+    },
+    {
+      "id": "upstream-compatibility-tests",
+      "category": "upstream-compatibility",
+      "patterns": [
+        "**/*compat*.test.ts",
+        "**/compat/**/*.test.ts"
+      ]
+    },
+    {
+      "id": "fixture-and-benchmark-tests",
+      "category": "expensive-manual",
+      "patterns": [
+        "test/fixtures/**",
+        "**/fixtures/**/*.test.ts",
+        "**/*benchmark*.test.ts"
+      ]
+    },
+    {
+      "id": "temporary-quarantine",
+      "category": "quarantined",
+      "patterns": [],
+      "allowEmpty": true
+    },
+    {
+      "id": "remaining-project-tests",
+      "category": "project-diagnostic",
+      "patterns": [
+        "**"
+      ],
+      "fallback": true
+    }
+  ]
+}
