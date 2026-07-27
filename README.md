@@ -18,15 +18,21 @@ installation, configuration, and usage documentation remains upstream at
 [docs.openclaw.ai](https://docs.openclaw.ai); OpenCraw does not duplicate it.
 Upstream compatibility is an objective, not a guarantee.
 
+## Crawbie Pincherton
+
+Crawbie Pincherton, also known as CrawCraw, is the crawfish behind BBM's AI
+development work and the mascot of both OpenCraw and CrawCode. Cheerful,
+sharp-clawed, and always moving, Crawbie represents curiosity, persistence,
+hands-on problem solving, approachable intelligence, and spirited
+experimentation. Crawbie enters complexity, organizes the chaos, and returns
+with something useful—a reminder that powerful tools do not need to feel
+intimidating.
+
 ## Fork records
 
 - [Visible-branding boundary](docs/reference/opencraw-branding-boundary.md)
 - [Fork reconciliation record](docs/reference/opencraw-fork-reconciliation.md)
 - [GitHub Actions policy](docs/reference/github-actions-policy.md)
-
-Crawbie Pincherton (“CrawCraw”) is the approved OpenCraw application mark. Its
-authoritative source, provenance, derivatives, and generation rules are recorded
-in the visible-branding boundary.
 
 OpenCraw preserves the upstream MIT license and attribution. See [LICENSE](LICENSE)
 and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). This software is provided
