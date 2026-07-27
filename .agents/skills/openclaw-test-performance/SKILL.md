@@ -70,50 +70,7 @@ test:extensions:batch <plugin[,plugin...]>` or plugin-inspector command
 Use this section when perf work involves bundled plugins, plugin-inspector, SDK
 barrels, package-boundary tests, or extension suites.
 
-1. Map the suite shape first:
-   - source tests: `pnpm test extensions/<id>` or `pnpm test:extensions:batch <id>`
-   - package boundaries: `pnpm run test:extensions:package-boundary:canary` and
-     `pnpm run test:extensions:package-boundary:compile`
-   - all bundled source tests: `pnpm test:extensions`
-   - plugin import memory: `pnpm test:extensions:memory -- --json .artifacts/test-perf/extensions-memory.json`
-   - plugin-inspector/report work: keep report primitives in `plugin-inspector`;
-     keep wrappers thin and collect peak RSS when the command supports it.
-2. Start narrow, then widen:
-   - one plugin changed: run that plugin's tests and plugin-inspector slice.
-   - SDK/public barrel changed: add representative provider, channel, memory,
-     and feature plugins.
-   - loader/runtime mirror changed: add package-boundary checks and build/package
-     proof as needed.
-   - unknown shared plugin behavior: run `test:extensions:batch` groups before
-     `pnpm test:extensions`.
-3. Treat plugin-inspector failures as product signals:
-   - JSON must parse.
-   - warnings/errors must be classified, not hidden.
-   - runtime capture should be quiet and config-tolerant.
-   - command output should include wall time, exit code, and peak RSS when
-     available.
-4. For broad or package-heavy plugin proof, use Crabbox-backed Blacksmith
-   Testbox by default on maintainer machines:
-   - `pnpm crabbox:run -- --provider blacksmith-testbox --timing-json -- OPENCLAW_TESTBOX=1 pnpm test:extensions:batch <ids>`
-   - add `--keep`/`--id <id-or-slug>` only when several commands must share one
-     warmed box; stop it with `pnpm crabbox:stop -- <id-or-slug>`.
-5. If plugin performance is package-artifact sensitive, switch to
-   `release-openclaw-plugin-testing` and Package Acceptance rather than
-   trusting source-only timing.
-
 ## Metric Collection
-
-Collect at least one stable metric before and after. Prefer the same machine and
-same command. For Testbox comparisons, use the same `tbx_...` id when possible.
-
-| Metric          | Use for                            | Preferred source                                                            |
-| --------------- | ---------------------------------- | --------------------------------------------------------------------------- |
-| wall time       | user-visible suite cost            | `/usr/bin/time -l`, test wrapper duration, Testbox run time                 |
-| Vitest duration | test body/import cost              | Vitest output per file/shard                                                |
-| import duration | broad barrel/runtime loads         | `OPENCLAW_VITEST_IMPORT_DURATIONS=1`                                        |
-| max RSS         | memory pressure and OOM risk       | `/usr/bin/time -l`, `pnpm test:extensions:memory`, wrapper memory summaries |
-| CPU/user/sys    | CPU-bound vs wait-bound split      | `/usr/bin/time -l` locally, Testbox job timing when local CPU is noisy      |
-| heap snapshots  | real leak vs retained module graph | `openclaw-test-heap-leaks` workflow                                         |
 
 Local scoped command with CPU/RSS:
 
@@ -227,20 +184,13 @@ pnpm test:perf:groups --report <vitest-json> \
 
 ## Verification
 
-- Always run the targeted test surface that proves the change.
-- For source changes, run `pnpm check:changed` before push; in maintainer
-  Testbox mode run it in the warmed Testbox.
-- For test-only changes, run `pnpm test:changed` or the exact edited tests.
-- Run `pnpm build` when touching lazy-loading, bundled artifacts, package
-  boundaries, dynamic imports, build output, or public surfaces.
-- For plugin SDK/barrel/runtime changes, add `pnpm plugin-sdk:api:check` or
-  `pnpm plugin-sdk:api:gen` when the API surface may drift.
-- For plugin-suite perf fixes, verify at least one representative plugin batch
-  plus the changed gate; use Package Acceptance if the bug only exists in a
-  packed artifact.
-- If deps are missing/stale, run `pnpm install` and retry the exact failed
-  command once.
-- Use the report format:
+Run the affected focused tests directly in the assigned trusted CrawDevAi
+checkout and record the exact commit, command, pass/fail result, wall time, and
+peak memory when measurable. Run the relevant typecheck, build,
+package-boundary, or public-API checks whenever the optimized surface can affect
+them. A timing improvement is incomplete unless behavior remains green. If the
+required direct proof is unavailable, fail clearly and stop; do not select or
+delegate to another runner.
 
 ```markdown
 | Metric         | Before |  After |          Gain |
@@ -253,14 +203,3 @@ pnpm test:perf:groups --report <vitest-json> \
 ## Handoff
 
 Keep the final concise:
-
-- Root cause.
-- Suite/plugin scope.
-- Files changed.
-- Before/after wall, Vitest/import, CPU, and RSS numbers where available.
-- Leak classification if memory was involved: real leak, retained module graph,
-  or inconclusive.
-- Coverage retained.
-- Verification commands.
-- Testbox ID or workflow URL for remote proof.
-- Commit hash and push status.

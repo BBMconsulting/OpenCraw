@@ -66,6 +66,18 @@ if (!adapter.includes("function disabled(): never") || /\bspawn\s*\(/u.test(adap
   errors.push("QA-lab compatibility adapter is not completely fail-closed");
 }
 
+const autoreview = readFileSync(
+  path.join(root, ".agents/skills/autoreview/scripts/autoreview"),
+  "utf8",
+);
+if (
+  !autoreview.includes("reject_external_validation_delegation()") ||
+  !autoreview.includes("OPENCLAW_TESTBOX is disabled in OpenCraw") ||
+  autoreview.includes("copy_blacksmith_testbox_credentials")
+) {
+  errors.push("autoreview does not fail closed against inherited external-runner mode");
+}
+
 if (errors.length > 0) {
   for (const error of errors) console.error(`[validation-policy] ${error}`);
   process.exitCode = 1;

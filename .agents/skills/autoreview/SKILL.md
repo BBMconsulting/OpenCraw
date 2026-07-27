@@ -216,38 +216,11 @@ independently semantic artifacts merely to shrink the review.
 
 ## Parallel Closeout
 
-Format first if formatting can change line locations. Then it is OK to run tests and review in parallel:
+Format first if formatting can change line locations. Parallel-test command text is printed to review output before execution, so never place API keys, tokens, credentials, private paths, or other secrets in that command string. Then it is OK to run tests and review in parallel:
 
 ```bash
 "$AUTOREVIEW" --parallel-tests "<focused test command>"
 ```
-
-On Windows, the default `--parallel-tests` shell preserves the platform `cmd.exe`
-semantics used by Python `shell=True`. Use `--parallel-tests-shell powershell`
-or `--parallel-tests-shell pwsh` when the focused test command is PowerShell-specific.
-Parallel tests inherit only a small allowlist of ordinary OS, CI, and toolchain
-variables. Put additional non-secret project controls directly in the test command.
-Home and standard config directories point to a temporary isolated root that is
-removed after the command exits. Do not put secrets in the command because it is
-printed before execution. Set `OPENCLAW_TESTBOX=1` on the autoreview process, not
-inside the test command, because the environment snapshot and credential staging
-happen before the test shell starts:
-
-```bash
-OPENCLAW_TESTBOX=1 "$AUTOREVIEW" --parallel-tests "pnpm check:changed"
-```
-
-On POSIX, the helper puts this isolated Testbox home under the short, sticky
-system `/tmp`; Blacksmith creates an SSH control socket below that home, and a
-long macOS `TMPDIR` can exceed the Unix-socket path limit. With an older helper,
-prefix the outer autoreview process with `TMPDIR=/tmp`. Setting `TMPDIR` inside
-the quoted test command is too late because the isolated home already exists.
-
-This is the narrow trusted-maintainer-code exception: it stages only the Blacksmith
-credential file into the temporary home so the command can delegate remotely. Never
-use this credential-hydrated path for untrusted contributor or fork code. Run other
-secret-bearing or credentialed tests separately in an appropriately isolated remote
-runner.
 
 Tradeoff: tests may force code changes that stale the review. If tests or review lead to code edits, rerun the affected tests and rerun review until no accepted/actionable findings remain. Once that rerun exits cleanly, stop; do not spend another long review cycle on redundant confirmation.
 

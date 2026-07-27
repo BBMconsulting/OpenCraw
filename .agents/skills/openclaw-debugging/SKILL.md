@@ -1,21 +1,16 @@
 ---
 name: openclaw-debugging
-description: Debug OpenClaw model, provider, tool-surface, code-mode, streaming, and live/Crabbox behavior by choosing the right logs, probes, and proof path before changing code.
+description: Debug OpenClaw model, provider, tool-surface, code-mode, streaming, and live behavior with targeted logs and direct repository proof.
 ---
 
 # OpenClaw Debugging
 
-Use this skill when OpenClaw behavior differs between local tests, live models,
-providers, code mode, Tool Search, Crabbox, or CI, and the next move should be a
-debug signal rather than a guess.
+Use this skill when the next step should be a narrow debug signal rather than a guess. Keep executable proof on trusted, assigned CrawDevAi source and fail closed when direct requirements are unavailable.
 
 ## Read First
 
-- `docs/logging.md` for log files, `openclaw logs`, and targeted debug flags.
-- `docs/reference/test.md` for local test commands.
-- `docs/tools/code-mode.md` for code-mode exec/wait and tool catalog rules.
-- Use `$openclaw-testing` for choosing test lanes.
-- Use `$crabbox` for broad, Docker, package, Linux, live-key, or CI-parity proof.
+- Read docs/logging.md for targeted logs and docs/reference/test.md for supported direct commands.
+- Use the openclaw-testing skill to select the smallest trusted direct proof.
 
 ## Default Loop
 
@@ -95,13 +90,7 @@ openclaw logs --follow
 
 ## Proof Choice
 
-- Single helper/payload bug: local targeted Vitest.
-- Docs/logging-only: `pnpm check:docs` and `git diff --check`.
-- Worker/dist/lazy import/package surface: targeted tests plus `pnpm build`.
-- Live provider/model behavior: same provider/model with debug flags and a real
-  key if available.
-- Docker/package/Linux/CI-parity: `$crabbox`.
-- CI failure: exact SHA, relevant job only, logs only after failure/completion.
+Use the narrowest direct command that proves the suspected boundary. Run repository-controlled code only from trusted assigned CrawDevAi source; if required dependencies, resources, credentials, or interfaces are unavailable, stop with the precise blocker and do not select another runner.
 
 ## Output Habit
 

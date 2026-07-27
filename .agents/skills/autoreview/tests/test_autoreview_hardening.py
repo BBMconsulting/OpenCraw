@@ -4967,7 +4967,7 @@ class AutoreviewHardeningTests(unittest.TestCase):
                 before,
             )
 
-    def test_trusted_maintainer_testbox_preserves_only_credentials(self) -> None:
+    def test_parallel_test_environment_drops_external_runner_state(self) -> None:
         old = os.environ.copy()
         with tempfile.TemporaryDirectory() as tempdir:
             root = Path(tempdir)
@@ -5033,22 +5033,8 @@ class AutoreviewHardeningTests(unittest.TestCase):
                     ),
                 )
                 self.assertEqual(env["NODE_ENV"], "test")
-                self.assertEqual(env["OPENCLAW_TESTBOX"], "1")
-                isolated_blacksmith = isolated_home / ".blacksmith"
-                self.assertEqual(
-                    (isolated_blacksmith / "credentials").read_bytes(),
-                    b"test-blacksmith-credentials",
-                )
-                self.assertFalse(
-                    (isolated_blacksmith / "unrelated-state").exists()
-                )
-                if os.name != "nt":
-                    self.assertEqual(
-                        stat.S_IMODE(
-                            (isolated_blacksmith / "credentials").stat().st_mode
-                        ),
-                        0o600,
-                    )
+                self.assertNotIn("OPENCLAW_TESTBOX", env)
+                self.assertFalse((isolated_home / ".blacksmith").exists())
                 self.assertNotIn("PROJECT_FEATURE_MODE", env)
                 self.assertEqual(env["HOME"], str(isolated_home.resolve()))
                 self.assertNotIn("CARGO_HOME", env)
@@ -5215,8 +5201,14 @@ class AutoreviewHardeningTests(unittest.TestCase):
             ):
                 self.helper["safe_temp_root"](repo)
 
-    @unittest.skipIf(os.name == "nt", "POSIX Testbox temp-root behavior")
-    def test_testbox_parallel_test_temp_root_stays_within_socket_limit(self) -> None:
+    def test_external_testbox_delegation_is_rejected(self) -> None:
+        with mock.patch.dict(
+            os.environ,
+            {"OPENCLAW_TESTBOX": "1"},
+        ), self.assertRaisesRegex(SystemExit, "disabled in OpenCraw"):
+            self.helper["reject_external_validation_delegation"]()
+
+    def test_parallel_test_temp_root_ignores_external_runner_state(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
             root = Path(tempdir)
             repo = init_repo(root)
@@ -5233,15 +5225,7 @@ class AutoreviewHardeningTests(unittest.TestCase):
             ):
                 selected = self.helper["parallel_test_temp_root"](repo)
 
-            self.assertEqual(selected, Path("/tmp").resolve())
-            socket_path = (
-                selected
-                / ("autoreview-test-home-" + "x" * 8)
-                / ".blacksmith"
-                / "c"
-                / "6d146d2f25180c1d.sock"
-            )
-            self.assertLess(len(os.fsencode(socket_path)), 104)
+            self.assertEqual(selected, long_temp.resolve())
 
     def test_parallel_test_temp_root_keeps_configured_root_without_testbox(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:

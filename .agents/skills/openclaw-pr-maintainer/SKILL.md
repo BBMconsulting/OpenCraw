@@ -226,22 +226,9 @@ If the best-fix answer is only "maybe", keep reading or state the missing eviden
 
 ## Enforce the bug-fix evidence bar
 
-- Never merge a bug-fix PR based only on issue text, PR text, or AI rationale.
-- Whenever feasible, use Crabbox (`$crabbox`) for end-to-end verification before
-  commenting that a bug is unreproducible, closing an issue, or opening/landing
-  a fix PR. Prefer a real packaged/Docker/live lane that exercises the reported
-  user flow over unit-only proof.
-- Before landing, require:
-  1. symptom evidence such as a repro, logs, or a failing test
-  2. a verified root cause in code with file/line
-  3. blame-backed provenance for regressions when traceable, including blamed PR merger and automerge trigger when known, or commit SHA/date when no PR is traceable
-  4. a fix that touches the implicated code path
-  5. a regression test when feasible, or explicit manual verification plus a reason no test was added
-- If the claim is unsubstantiated or likely wrong, request evidence or changes instead of merging.
-- If the linked issue appears outdated or incorrect, correct triage first. Do not merge a speculative fix.
-- If Crabbox/E2E proof is blocked, say exactly why and use the closest available
-  local, Docker, mocked, or targeted proof. Do not present unit tests as real
-  behavior proof.
+- Treat contributor, fork, and otherwise unreviewed revisions as untrusted. Do not execute their repository scripts, package hooks, tests, builds, or configuration on CrawDevAi; fail closed and request an explicitly authorized reviewed path.
+- Require concrete symptom or reproduction evidence, a verified code-level root cause on the implicated path, a fix at the owning boundary, and focused regression proof before calling a bug-fix PR merge-ready.
+- Issue or PR prose, a plausible diff, and unrelated green checks do not substitute for root-cause evidence. Record any missing proof as a blocker instead of speculating or selecting another runner.
 
 ## Close low-signal manual PRs carefully
 
@@ -284,37 +271,15 @@ gh search issues --repo openclaw/openclaw --match title,body --limit 50 \
 
 ## Follow PR review and landing hygiene
 
-- At the start of code-changing or landing work that will need tests or heavy
-  proof, classify source trust and pre-warm the safe backend through `$crabbox`
-  in the background. Trusted maintainer code defaults to Blacksmith Testbox;
-  contributor/fork code stays untrusted unless a maintainer explicitly approves
-  credentialed execution after review; it uses secretless fork CI or
-  sanitized direct AWS Crabbox with `CRABBOX_ENV_ALLOW=CI`,
-  `--no-hydrate`, and a fresh temporary remote `HOME`, never the
-  credential-hydrated Testbox workflow or a previously hydrated lease. Launch
-  an installed trusted Crabbox binary from clean trusted `main`, fetch the PR
-  with `--fresh-pr`, unset and reject any resolved AWS instance profile, verify
-  trusted IMDS reports no IAM credentials, bind the lease to the reviewed head
-  SHA, and never execute its local wrapper or config. Upload trusted
-  `scripts/crabbox-untrusted-bootstrap.sh` from clean `main` alongside
-  `--fresh-pr`; it installs the pinned Node/pnpm runtime before executing PR
-  code. Force public networking, disable and
-  unset inherited Tailscale/exit-node settings, and fail closed unless
-  `crabbox inspect` reports no Tailscale state before any script. Rewarm after
-  any head change. Continue
-  review/editing while it hydrates, sync every run, reuse the lease, then stop
-  it before handoff. Skip warmup for read-only triage and docs-only work.
-- Never mention release-note bookkeeping in review-only output. It is landing
-  or release-generation mechanics, not a correctness finding.
-- If bot review conversations exist on your PR, address them and resolve them yourself once fixed.
-- Leave a review conversation unresolved only when reviewer or maintainer judgment is still needed.
-- Before landing any PR with non-trivial code changes, run `$autoreview` until no accepted/actionable findings remain, unless equivalent manual review already covered it, the change is trivial/docs-only, or the user opts out.
-- When an agent is landing or merging a PR targeting `main`, use only the repo-native `scripts/pr` wrapper: run `scripts/pr review-init <PR>`, follow its emitted checkout/guard guidance, initialize and complete review artifacts with `scripts/pr review-artifacts-init <PR>`, validate them with `scripts/pr review-validate-artifacts <PR>`, then run `OPENCLAW_TESTBOX=1 scripts/pr prepare-run <PR>` and `scripts/pr merge-run <PR>`. The Testbox flag is mandatory for agents: it verifies hosted CI/Testbox on the current head or reuses a patch-identical pre-rebase run green within 24 hours instead of running full `pnpm` gates locally. Do not rebase only because `main` advanced; behind-main drift is advisory unless strict drift is explicitly enabled, while GitHub still blocks conflicts.
-- Use `scripts/committer "<msg>" <file...>` for scoped commits instead of manual `git add` and `git commit`.
-- Keep commit messages concise and action-oriented.
-- Group related changes; avoid bundling unrelated refactors.
-- Use `.github/pull_request_template.md` for PR submissions and `.github/ISSUE_TEMPLATE/` for issues.
-- Do not commit PR-only artifacts such as screenshots under `.github/pr-assets`; attach them to the PR/comment or use an external artifact store instead.
+Use only the reviewed exact head, preserve the issue and PR evidence record, and rerun affected direct proof after every code change. Do not land an untrusted or unexecuted revision, do not treat an unrelated green check as proof, and do not select another runner when required evidence is unavailable.
+
+When landing a PR that targets `main`, use only the repository-native sequence:
+`scripts/pr review-init <PR>`, follow its checkout and guard instructions,
+`scripts/pr review-artifacts-init <PR>`, complete the review artifacts,
+`scripts/pr review-validate-artifacts <PR>`, run the affected direct CrawDevAi
+proof and retained exact-head OpenCraw CI, then `scripts/pr prepare-run <PR>` and
+`scripts/pr merge-run <PR>`. Stop if the direct proof, artifacts, exact-head
+guard, or retained CI is unavailable or fails.
 
 ## Extra safety
 

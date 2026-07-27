@@ -757,7 +757,6 @@ TEST_ENV_ALLOWED_EXACT = {
     "NO_PROXY",
     "NVM_BIN",
     "NVM_DIR",
-    "OPENCLAW_TESTBOX",
     "PATH",
     "PATHEXT",
     "PNPM_HOME",
@@ -1053,26 +1052,7 @@ def safe_temp_root(repo: Path) -> Path:
 
 
 def parallel_test_temp_root(repo: Path) -> Path:
-    root = safe_temp_root(repo)
-    if os.name == "nt" or not env_truthy("OPENCLAW_TESTBOX"):
-        return root
-
-    # Blacksmith stores its SSH control socket below HOME. macOS temp roots can
-    # already consume the Unix-socket path budget before the socket name.
-    try:
-        short_root = Path("/tmp").resolve(strict=True)
-        short_root_stat = short_root.stat()
-    except OSError as exc:
-        raise SystemExit(f"unable to resolve short Testbox temp root: {exc}") from exc
-    if not stat.S_ISDIR(short_root_stat.st_mode):
-        raise SystemExit("short Testbox temp root must be a directory")
-    if is_within(short_root, repo.resolve()):
-        raise SystemExit("short Testbox temp root must be outside the reviewed repository")
-    if short_root_stat.st_mode & stat.S_IWOTH and not (
-        short_root_stat.st_mode & stat.S_ISVTX
-    ):
-        raise SystemExit("world-writable Testbox temp root must have the sticky bit set")
-    return short_root
+    return safe_temp_root(repo)
 
 
 def safe_proxy_url(value: str) -> bool:
@@ -1336,36 +1316,6 @@ def quote_java_tool_option(option: str) -> str:
     return "'" + option.replace("'", "'\"'\"'") + "'"
 
 
-def copy_blacksmith_testbox_credentials(
-    repo: Path,
-    source_home: str | None,
-    isolated_home: Path,
-) -> None:
-    if not source_home:
-        return
-    source = Path(source_home).expanduser() / ".blacksmith" / "credentials"
-    try:
-        resolved = source.resolve()
-        source_stat = source.lstat()
-    except OSError:
-        return
-    if (
-        not stat.S_ISREG(source_stat.st_mode)
-        or source_stat.st_size > 64 * 1024
-        or not external_env_path(repo, str(resolved))
-    ):
-        return
-    try:
-        data = source.read_bytes()
-    except OSError:
-        return
-    target_dir = isolated_home / ".blacksmith"
-    target_dir.mkdir(parents=True, exist_ok=True)
-    target = target_dir / "credentials"
-    target.write_bytes(data)
-    target.chmod(0o600)
-
-
 def safe_test_env(repo: Path, isolated_home: Path) -> dict[str, str]:
     resolved_home = isolated_home.resolve()
     if is_within(resolved_home, repo.resolve()):
@@ -1430,13 +1380,6 @@ def safe_test_env(repo: Path, isolated_home: Path) -> dict[str, str]:
         }
     )
     original_home = os.environ.get("HOME") or os.environ.get("USERPROFILE")
-    if env.get("OPENCLAW_TESTBOX", "").strip().lower() in {
-        "1",
-        "true",
-        "yes",
-        "on",
-    }:
-        copy_blacksmith_testbox_credentials(repo, original_home, resolved_home)
     rustup_home = os.environ.get("RUSTUP_HOME")
     if not rustup_home and original_home:
         default_rustup_home = Path(original_home).expanduser() / ".rustup"
@@ -11107,6 +11050,14 @@ def env_truthy(name: str) -> bool:
     raise SystemExit(f"invalid boolean environment value for {name}: {value}")
 
 
+def reject_external_validation_delegation() -> None:
+    if env_truthy("OPENCLAW_TESTBOX"):
+        raise SystemExit(
+            "OPENCLAW_TESTBOX is disabled in OpenCraw; run parallel proof "
+            "directly on the assigned CrawDevAi checkout"
+        )
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Bundle-driven AI code review.")
     parser.add_argument("--mode", choices=["auto", "local", "uncommitted", "branch", "commit"], default="auto")
@@ -11816,6 +11767,7 @@ def atomic_write_text(path: Path, content: str) -> None:
 
 def main() -> int:
     args = parse_args()
+    reject_external_validation_delegation()
     if args.self_test:
         return self_test()
     if args.self_test_opencode_jsonl_parser:

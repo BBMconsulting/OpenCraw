@@ -45,4 +45,17 @@ describe("OpenCraw external validation policy", () => {
     expect(() => sshCommand({ inspect: {} })).toThrow(disabled);
     expect(params.runner).not.toHaveBeenCalled();
   });
+
+  it("rejects inherited Testbox mode before autoreview can execute proof", () => {
+    const result = spawnSync(
+      "python3",
+      [".agents/skills/autoreview/scripts/autoreview", "--self-test"],
+      {
+        encoding: "utf8",
+        env: { ...process.env, OPENCLAW_TESTBOX: "1" },
+      },
+    );
+    expect(result.status).not.toBe(0);
+    expect(`${result.stdout}\n${result.stderr}`).toMatch(/disabled in OpenCraw/u);
+  });
 });

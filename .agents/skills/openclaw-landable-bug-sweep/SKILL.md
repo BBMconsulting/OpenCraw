@@ -14,12 +14,13 @@ Do not use for plugin SDK/API boundary work; those need separate architecture re
 Use `batch_size` from the request, defaulting to `5` and capped at `20`.
 Return up to that many qualified PR URLs, each with:
 
-- bug summary
+- bug summary and root-cause evidence
 - why the fix is low-risk
-- proof: rebased-head local/Testbox/live commands or run IDs
-- autoreview: clean result on the exact head being shown
-- CI green on the exact pushed PR head
-- issue/duplicate cleanup done or still pending
+- direct CrawDevAi proof commands and results on the exact reviewed head
+- autoreview result on that exact head
+- retained OpenCraw CI run IDs and conclusions on the exact pushed head
+- exact reviewed and pushed head SHAs
+- issue, duplicate, and temporary-checkout cleanup status
 
 The URLs may be existing PRs that were reviewed/fixed, or new PRs created from issues/clusters.
 Do not present a PR URL to the maintainer until it has been refreshed on current `main`, left-tested, autoreviewed clean, pushed, and verified green in live GitHub CI.
@@ -33,10 +34,6 @@ Do not pad a batch when the bounded search yields fewer qualified PRs.
 - `provided_prs`: explicit PR refs when `source_mode=provided-prs`.
 
 In `provided-prs` mode, inspect only the supplied PRs plus directly linked duplicate/canonical refs unless broader discovery is required to prove the best fix.
-
-## Companion Skills
-
-Use `$gitcrawl` for discovery/clustering, `$openclaw-pr-maintainer` for live GitHub mutation rules, `$github-author-context` when contributor trust matters, `$openclaw-testing` for proof choice, `$autoreview` before publishing/landing, and `$crabbox` for broad/E2E/live proof.
 
 ## Candidate Bar
 
@@ -78,42 +75,11 @@ Reject:
 
 ## Sweep Loop
 
-1. Start clean:
-   - `git status -sb`
-   - `git pull --ff-only`
-   - verify branch is expected, usually `main`
-2. Build candidate clusters:
-   - `gitcrawl` open issues/PRs, neighbors, and search
-   - live `gh issue/pr view`
-   - include PRs linked from issues and duplicates
-3. For each cluster:
-   - read issue/PR body, comments, labels, linked refs, current source, adjacent tests
-   - exclude PRs authored by wide-access maintainers until `created_at` is at least 14 days old; only a named PR or explicit maintainer-work request overrides
-   - identify opener/author and preserve credit
-   - decide: `repair-existing-pr`, `create-new-pr`, `close-fixed-on-main`, `close-duplicate`, or `reject`
-4. Prove before patching:
-   - failing test, focused repro, log/source proof, or dependency contract proof
-   - if already fixed on `main`, prove with current source/test/commit and close kindly
-5. Patch:
-   - prefer existing PR when good and writable
-   - if unwritable or wrong shape, create own PR and preserve useful contributor credit
-   - if no PR exists, create one
-   - add regression test when it fits
-   - release-note context for user-facing fixes in PR body or commit message; credit human reporter/contributor when known
-6. Review, refresh, and publish:
-   - rebase or otherwise refresh the PR branch on current `origin/main`
-   - resolve drift, including newly exposed CI failures, rather than counting the PR as ready
-   - do not add `CHANGELOG.md` during normal sweep PRs; release automation generates it from PRs and commits
-   - left-test the rebased head with the smallest meaningful local/Testbox/live command that proves the bug
-   - run `$autoreview` until no accepted/actionable findings remain before creating, updating, or presenting the PR URL
-   - create/update PR with real body and proof fields
-   - push the exact reviewed head
-   - verify live GitHub CI is green for that pushed head; do not count pending, red, dirty, conflicting, or externally blocked PRs in the five
-7. Hygiene:
-   - close duplicates and fixed-on-main issues/PRs with proof as soon as you notice them during the sweep
-   - never mutate more than five associated items in one cluster without explicit confirmation
-   - comments must be kind, concrete, and include proof/PR/commit links
-8. Repeat until `batch_size` landable PR URLs are ready or the bounded qualified queue is exhausted.
+1. Classify source trust before any execution; untrusted contributor or fork code remains unexecuted on CrawDevAi.
+2. Prove the root cause from current source and dependency contracts.
+3. Apply the smallest owner-aligned fix and run focused direct proof from trusted source.
+4. Run autoreview, then the retained exact-head OpenCraw CI when authorized.
+5. Stop rather than delegating if direct proof or retained CI cannot establish the required evidence.
 
 ## PR Body Proof
 

@@ -7,13 +7,6 @@ description: "Use for OpenClaw clawtributors PR/issue triage: Discrawl discovery
 
 Use for the `#clawtributors` queue: Discord-discovered OpenClaw PRs/issues that need live GitHub status plus maintainer-quality review.
 
-## Compose with other skills
-
-- `$discrawl`: local Discord archive sync/search.
-- `$openclaw-pr-maintainer`: live GitHub PR/issue review, duplicate search, close/land rules.
-- `$gitcrawl`: related issue/PR and current-main/stale-proof search.
-- `$openclaw-testing` / `$crabbox`: proof choice when a candidate needs real validation.
-
 ## Archive flow
 
 Local archive first; verify freshness for current questions.

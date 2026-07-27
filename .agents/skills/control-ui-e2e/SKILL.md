@@ -28,8 +28,6 @@ node scripts/run-vitest.mjs run --config test/vitest/vitest.ui-e2e.config.ts --c
 pnpm test:ui:e2e
 ```
 
-If dependencies are missing in a Codex worktree, install once with `pnpm install`; for broad GUI proof or dependency-heavy checks, use Testbox/Crabbox instead of running a wide local pnpm lane.
-
 ## Visual Proof Default
 
 When running mocked Control UI/dashboard validation for a user-facing feature, produce visual proof by default unless the user explicitly opts out.

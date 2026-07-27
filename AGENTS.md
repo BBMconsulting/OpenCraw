@@ -22,24 +22,6 @@ Skills own workflows; root owns hard policy and routing.
 - New channel/plugin/app/doc surface: update `.github/labeler.yml` + GH labels.
 - New `AGENTS.md`: add sibling `CLAUDE.md` symlink; edit `AGENTS.md` only.
 
-## ClawSweeper Review Policy
-
-- OpenClaw-specific review rules live here; generic ClawSweeper prompts stay repo-agnostic.
-- ClawSweeper-owned schema, labels, close reasons, protected-label gates, maintainer-item gates, and mutation rules live in `openclaw/clawsweeper`.
-- Review workers read this full root `AGENTS.md` before judging; no reliance on search snippets, `head`, partial ranges, local excerpts, or truncated copies. Then read every scoped `AGENTS.md` that owns touched paths.
-- Optional integrations, providers, channels, skill bundles, MCP surfaces, and service workflows route to plugins, ClawHub, or owner repos when current seams suffice. Keep core items for missing core/plugin APIs, bundled regressions, security/core hardening, or maintainer product decisions.
-- Plugin APIs, provider routing, auth/session state, persisted preferences, config loading, config/default additions, migrations, setup, startup checks, and fallback behavior are compatibility/upgrade-sensitive. Treat config breaks, new config/default surfaces, removed fallbacks, fail-closed changes, stricter validation, or new operator action as merge risk even with green CI when they can affect existing users, upgrades, provider/plugin behavior, or maintainer operations.
-- For PRs that add, remove, or change config/default surfaces with possible compatibility, upgrade, provider/plugin, operator, setup, startup, or fallback impact, ClawSweeper review should emit a `reviewMetrics` entry when practical. The metric should name the count and direction of the changes, such as added, changed, or removed config/default surfaces, and explain why the metric matters before merge. When the metric indicates concrete merge risk, also surface the concern in `risks`, use `mergeRiskLabels` when the risk matches the label rubric, make `bestSolution` name the desired pre-merge state, and ensure `labelJustifications` explain the specific reason rather than restating the label.
-- Review whole decision surfaces, not only the touched runtime, provider, channel, harness, plugin seam, or context path. Check sibling Codex/Pi-style runtimes, provider/model routing, channel delivery, gateway/protocol, plugin SDK, and context-management paths when relevant.
-- Every PR review must explicitly ask whether the PR is the best fix, not merely a plausible fix. Verdicts need a best-fix judgment backed by enough code reading to compare owner boundaries, callers, siblings, tests, docs, current `main`, shipped behavior when relevant, and dependency/Codex contracts when involved.
-- Before a PR verdict, build a small evidence map: changed surface, entry point, owner boundary, at least one caller and callee, sibling surfaces that share the invariant, existing tests, and current `main` behavior. If any cell is missing, say the gap instead of concluding.
-- One-sided fixes need sibling-surface proof, an explanation for why siblings are unaffected, or explicit follow-up work.
-- Changelog findings: see Docs / Changelog.
-- Public ClawSweeper comments prefer `https://docs.openclaw.ai/...` when a public docs page exists; structured evidence still cites repo files, lines, SHAs.
-- Findings need current source, shipped/current behavior, tests/CI evidence, and dependency contract proof when dependency-backed behavior is involved. Validation is judged against touched and sibling surfaces plus this file's commands; clear evidence matters for user-visible changes, with Telegram/Desktop proof for Telegram-visible behavior when feasible.
-- Prefer findings for concrete behavior regressions, missing changed-surface proof, owner-boundary violations, security/API contract issues, or docs/config mismatches.
-- Do not file findings for repo policy preference when changed code follows the relevant scoped guide and no user-visible, runtime, security, or maintainer-risk impact is shown.
-
 ## Map
 
 - Core TS: `src/`, `ui/`, `packages/`; plugins: `extensions/`; SDK: `src/plugin-sdk/*`; channels: `src/channels/*`; loader: `src/plugins/*`; protocol: `packages/gateway-protocol/*`; docs/apps: `docs/`, `apps/`.
@@ -117,16 +99,12 @@ Skills own workflows; root owns hard policy and routing.
 
 - Runtime: Node 22.22.3+, 24.15+, or 25.9+; Node 24 recommended. Keep Node + Bun paths working.
 - Package manager/runtime: repo defaults only. No swaps without approval.
-- Install: `pnpm install` (keep Bun lock/patches aligned if touched). Agent dependency installation for tests/builds defaults to the selected remote box; do not reconcile a local Codex worktree just to run validation.
+- Install: `pnpm install` (keep Bun lock/patches aligned if touched). Agent dependency installation for tests/builds runs only in the assigned trusted CrawDevAi checkout; do not reconcile a local Codex worktree or select another host.
 - CLI: `pnpm openclaw ...` or `pnpm dev`; build: `pnpm build`.
 - Packaged `pnpm build` omits QA Lab + qa-channel by design (source-checkout only). To exercise `openclaw qa`/qa-channel from a built dist, build with `OPENCLAW_BUILD_PRIVATE_QA=1 pnpm build` (emits `dist/plugin-sdk/qa-lab.js`, `qa-runtime.js`, `dist/extensions/{qa-lab,qa-channel}`) or run via `pnpm dev`.
-- Agent proof routing: source trust first, proof size second. Only trusted source may run locally; then run one/few focused tests and cheap static checks locally when the existing checkout dependencies are ready. Use Crabbox only for larger suites, changed gates with typecheck/lint fan-out, builds, Docker, packaging, E2E, live proof, and cross-platform work. Trusted maintainer heavy proof defaults to Blacksmith Testbox. Contributor/fork code remains untrusted unless a maintainer explicitly approves credentialed execution after review; an explicit owner/maintainer instruction to land named, reviewed PRs is that approval, so do not ask twice. Otherwise use secretless fork CI or sanitized direct AWS Crabbox, never a credential-hydrated Testbox. Never run an untrusted checkout's scripts, tests, checks, wrappers, config, or package hooks locally, regardless of proof size. Sanitized AWS must launch an installed trusted Crabbox binary from a clean trusted `main` checkout and fetch only the remote PR via `--fresh-pr`; never execute a wrapper, config, or command from the untrusted local checkout. Before warmup, unset `CRABBOX_AWS_INSTANCE_PROFILE` and all `CRABBOX_TAILSCALE*` overrides; fail closed unless resolved `aws.instanceProfile` is empty. Force `--network public --tailscale=false`, clear exit-node/LAN flags, and require `crabbox inspect` to report public networking with no Tailscale state before any script. Upload trusted `scripts/crabbox-untrusted-bootstrap.sh` from clean `main` alongside `--fresh-pr`; it proves the remote IMDSv2 IAM credentials endpoint returns 404, verifies the reviewed head SHA, unsets `NODE_OPTIONS`, installs pinned Node/pnpm, verifies the package-manager pin, isolates `HOME`, installs dependencies, then runs the requested test. Use a newly warmed lease bound to one reviewed head SHA, set `CRABBOX_ENV_ALLOW=CI`, and use `--no-hydrate`. Never reuse a trusted/previously hydrated lease or carry an untrusted lease across head revisions; stop and rewarm when the SHA changes. No repo `OPENCLAW_*` allowlist, existing auth profile, instance role, tailnet/LAN access, moving PR head, or ambient Node preload may reach untrusted execution. Do not pre-warm at task start. Acquire the safe backend lazily for the first heavy proof, reuse that one lease, then stop it before handoff. Remote boxes are preferred, not mandatory: when the remote backend is unavailable (broker/DNS/network/lease failure), trusted-source work falls back to local execution — including heavier suites and gates — instead of blocking; note the fallback and reason in the proof summary. Untrusted source never falls back to local.
-- Test commands: trusted-source focused local proof uses `node scripts/run-vitest.mjs <path-or-filter>`; remote or normal-checkout proof may use `pnpm test <path-or-filter> [vitest args...]`, `pnpm test:changed`, `pnpm test:serial`, or `pnpm test:coverage`. Never raw `vitest`.
+- Test commands: trusted-source focused proof runs only in the assigned CrawDevAi checkout using `node scripts/run-vitest.mjs <path-or-filter>`, `pnpm test <path-or-filter> [vitest args...]`, `pnpm test:changed`, `pnpm test:serial`, or `pnpm test:coverage`. Untrusted source remains unexecuted. Never raw `vitest`.
 - If raw Vitest is unavoidable, use `vitest run ...`; bare `vitest ...` starts local watch mode and will not exit on its own.
 - Vitest repetition: no `--repeat`; use a bounded shell loop around the focused repo test command.
-- Local agent test execution is allowed only for trusted source and one/few focused files when the existing dependency install is ready. In a Codex worktree or linked/sparse checkout, use `node scripts/run-vitest.mjs <path-or-filter>`; never direct local `pnpm test*`, and never reconcile dependencies merely to keep proof local.
-- Checks/lint in a trusted normal source checkout: `pnpm check:changed` classifies first; docs-only, no-change, and small metadata plans stay local when dependencies are ready, while typecheck/lint fan-out delegates to Crabbox/Testbox. Never run this repository-controlled classifier locally for untrusted source. Inspect lanes with `pnpm changed:lanes --json`; staged/path-scoped forms are `pnpm check:changed --staged` and `pnpm check:changed -- <files...>`.
-- Checks in a trusted Codex worktree or linked/sparse checkout: avoid direct local `pnpm check*`; use `node scripts/check-changed.mjs [--staged|-- <files...>]`. It can classify without installed dependencies and delegates heavy or dependency-missing proof before loading package-backed helpers. For untrusted source, do not execute this repository-controlled wrapper locally.
 - Extension tests: `pnpm test:extensions`, `pnpm test extensions`, `pnpm test extensions/<id>`.
 - Typecheck: `tsgo` lanes only (`pnpm tsgo*`, `pnpm check:test-types`); never add `tsc --noEmit`, `typecheck`, `check:types`.
 - Formatting: `oxfmt`, not Prettier. Write paths with `pnpm format <paths>`; no `format:write` script. Checks use repo wrappers (`pnpm format:*`, `scripts/run-oxlint.mjs`; full `pnpm lint:*` only when scope requires).
@@ -134,43 +112,21 @@ Skills own workflows; root owns hard policy and routing.
 - `scripts/*.mjs` exports: matching declaration in sibling `.d.mts` mandatory. `pnpm check:script-declarations` (check-guards) + `check-test-types` enforce; new export without declaration = red CI.
 - Script wrappers: failing or crashed run must end with one final `[tool] FAILED (exit N)` stderr line; crash = nonzero exit. Truncated output must never read as success. Pattern: `scripts/run-oxlint.mjs`.
 - Tooling crash `Cannot find module ...` right after pulling/merging main = stale `node_modules`, not a code bug. `pnpm install` first; only then debug.
-- Build before push when build output, packaging, lazy/module boundaries, dynamic imports, or published surfaces can change; agent builds default to the selected remote box unless platform-specific proof requires another remote host.
+- Build before push when build output, packaging, lazy/module boundaries, dynamic imports, or published surfaces can change; agent builds run only in the assigned trusted CrawDevAi checkout; unavailable platform-specific proof is reported rather than delegated.
 
 ## Validation
 
-- Use `$openclaw-testing` for test/CI choice and `$crabbox` for remote/full/E2E proof.
-- Classify source trust before proof size. Do not pre-warm for anticipated work. Run focused proof locally only for trusted source; untrusted source uses secretless fork CI or sanitized direct AWS regardless of size. Lazily acquire the appropriate backend at the first remote command. Trusted maintainer heavy proof prefers Blacksmith Testbox; if the remote backend is unavailable, run the proof locally for trusted source and say so in the proof summary rather than blocking. Reuse one acquired lease for later heavy commands, sync the current checkout for every run, then stop it before handoff.
-- Warm Testbox from the task checkout; ownership is checkout-path scoped; `--reclaim` only for intentional transfer.
-- One Testbox lease, one active command; never sync/reclaim during a run.
-- Testbox `--reclaim` does not retarget the remote checkout; never cross repos.
-- Base/head changed: stop and rewarm Testbox; never override stale lease checks.
-- Compound Testbox commands: `bash -lc`, never `sh -lc`; job env uses Bash `declare`.
-- Testbox cleanup: `blacksmith testbox stop --id <tbx_id>`; id is not positional.
-- Delegated Testbox rejects `--fresh-pr` and `--stop-after`; sync current checkout, workflow owns lifecycle.
 - PR review artifacts: keep template enum values; put evidence detail in summaries.
-- Crabbox request means real scenario proof: install/update/call/repro user path; not just copy tests and run them remotely.
-- Blacksmith Testbox delegated runs: omit `--stop-after`; unsupported, cleanup is delegated.
-- Visual proof: use Crabbox, set up like a user, then screenshot-verify. No harness/bypass/shortcut unless explicitly asked.
-- Trusted-source local agent work includes one/few focused tests, `git diff --check`, targeted formatting, and cheap static probes when dependencies already exist. Untrusted source executes none of its repository-controlled tooling locally. Computationally intensive work uses the selected remote box.
-- In Codex or linked worktrees, direct local `pnpm test*`, `pnpm check*`, `pnpm crabbox:run`, and `scripts/committer` can trigger pnpm dependency reconciliation or install prompts. Prefer `node` wrappers locally and Crabbox/Testbox for pnpm-gated proof.
-- Direct Blacksmith lease: use `blacksmith testbox run`; Crabbox wrapper reuse needs a wrapper-created lease.
-- Wrapper Testbox reuse requires its local SSH key; missing after restart/handoff means warm fresh.
+- Trusted-source work in the assigned CrawDevAi checkout includes one/few focused tests, `git diff --check`, targeted formatting, and cheap static probes when dependencies already exist. Untrusted source executes none of its repository-controlled tooling. Trusted computationally intensive work uses serialized or bounded execution on CrawDevAi. Untrusted source remains unexecuted.
 - Dirty-sync generator proof: compare hashes before/after; `git diff` includes the synced patch.
-- Crabbox wrapper `stop` has no `--timing-json`; use `node scripts/crabbox-wrapper.mjs stop --provider <provider> --id <id>`.
-- Repo-native PR worktree may omit `node_modules`; prove remotely, then use `git commit --no-verify`, not `scripts/committer`.
-- Release-branch formatting: Testbox or existing binary; never local `pnpm exec` reconciliation.
-- Targeted local format/lint: existing `./node_modules/.bin/*`; never `pnpm exec` reconciliation.
+- A repo-native worktree missing `node_modules` is not executable proof. Use the assigned trusted CrawDevAi checkout or report the blocker; never select another runner. Use `git commit --no-verify`, not `scripts/committer`, only after separate required proof is green.
+- Targeted CrawDevAi format/lint: use existing `./node_modules/.bin/*`; never `pnpm exec` reconciliation.
 - Parallel agents share the checkout; never switch its branch while sibling work runs.
-- Testbox status: `blacksmith testbox status --id <tbx_id>`; no `--json` flag.
 - QA CLI `--output-dir` must be repo-relative.
-- Full suites, changed gates, builds, typechecks, lint fan-out, Docker/package/E2E/live/cross-OS proof, or anything computationally intensive: Crabbox/Testbox.
-- Testbox owns Chromium; never pass Crabbox `--browser` to `provider=blacksmith-testbox`.
-- Testbox warmup must print a lease id; silent success is unusable. Verify before reuse; fall back to one-shot `run`.
-- If local proof fans out or becomes expensive, stop it and lazily acquire the remote box.
+- If direct proof exceeds CrawDevAi resources, stop and report the measured blocker; never acquire or select another runner automatically.
 - Before handoff/push: prove touched surface. Before landing to `main`: proof matches actual risk. Bounded behavior-neutral refactor: focused tests/checks enough; no issue proof or full/broad suite by default.
 - Release-branch full validation: freeze the product-complete **Code SHA**, then use `node scripts/full-release-validation-at-sha.mjs --sha <code-sha> --target-ref release/YYYY.M.PATCH`; no raw dispatch without `target_context_ref`.
-- Pre-land/pre-commit code changes: mandatory fresh `$autoreview` until no accepted/actionable findings remain. Do not land code on CI, ClawSweeper, prior review comments, or your own manual review alone unless user explicitly opts out or scope is truly trivial/docs-only. If findings want refactor, refactor; no ugly fixes.
-- Before landing any PR: read the latest ClawSweeper comment and its `Rank-up moves:` list. Apply each move, or state in the PR why it is skipped; never merge past them silently. No `@clawsweeper re-review` round-trip is required — the moves are already in the existing comment; re-review only refreshes the rating.
+- Pre-land/pre-commit code changes: mandatory fresh `$autoreview` until no accepted/actionable findings remain. Do not land code on CI, prior review comments, or your own manual review alone unless user explicitly opts out or scope is truly trivial/docs-only. If findings want refactor, refactor; no ugly fixes.
 - Autoreview uncommitted changes: `--mode uncommitted`; no `dirty` mode.
 - Autoreview staged/uncommitted diff: use `--mode uncommitted`; no `staged` mode.
 - If proof is blocked, say exactly what is missing and why.
@@ -191,9 +147,6 @@ Skills own workflows; root owns hard policy and routing.
 - `gh pr diff` has no `--stat`; use `gh pr view --json changedFiles,additions,deletions` or `git diff --stat`.
 - zsh: quote `gh api` endpoints containing `?` or brackets; otherwise glob expansion corrupts the invocation.
 - `gh pr checks --json`: use `link`, not nonexistent `detailsUrl`.
-- Blacksmith Testbox status/stop: `--id <tbx_id>`; no status JSON flag.
-- Crabbox final timing JSON = proof complete; if portal sync hangs after it, interrupt wrapper only.
-- Sparse-sync temp checkout may claim kept Testbox; repo-path reuse needs `--reclaim`.
 - GitHub Actions: resolve workflow files from `.github/workflows` or API; never infer filenames from display names.
 - Yielded exec: retain the returned session id before polling; never blind-retry.
 - zsh: quote command globs; unmatched patterns abort before the tool runs.
@@ -212,7 +165,6 @@ Skills own workflows; root owns hard policy and routing.
 - `gh api --paginate '<endpoint>' | jq -s ...`; gh `--slurp` may emit nothing and forbids `--jq`/`--template`.
 - Main-bound workflow dispatch: resolve server `main` SHA immediately before dispatch; retry if identity fails after `main` advances.
 - `gh run view --json` uses `attempt`, not `attemptNumber`.
-- Crabbox stop: no `--timing-json`; use `node scripts/crabbox-wrapper.mjs stop --provider <provider> --id <id>`.
 - macOS `find` has no `-printf`; use `-print0` plus `stat`.
 - Actions checkout refs: use full 40-char SHAs; short SHAs resolve as branches/tags.
 - zsh Git object paths: use `${sha}:path`; `$sha:path` invokes parameter modifiers.
@@ -228,7 +180,6 @@ Skills own workflows; root owns hard policy and routing.
 - PR review answer: bug/behavior, URL(s), affected surface, provenance for regressions when traceable, best-fix judgment, evidence from code/tests/CI/current or shipped behavior.
 - PR reviewable findings: post them on the PR, not chat-only, so author sees actionable feedback.
 - Issue/PR final answer: last line is the full GitHub URL.
-- PR verification: before merge, post land-ready work done, exact local commands, CI/Testbox run IDs, before/after proof when used, and known proof gaps.
 - Issue fixed on `main` with proof: comment proof + commit/PR, then close.
 - After landing or requested close/sweep: search duplicates; comment proof + canonical commit/PR/release before closing.
 - After PR merge/ship: concise prose recap, not a bullet pile; cover behavior, key surface, proof, and issue/PR state. Check for worthwhile refactor or simplification follow-ups; suggest any warranted.
@@ -238,14 +189,12 @@ Skills own workflows; root owns hard policy and routing.
 - No surprise GH writes: chat must mention every posted/updated public comment with URL.
 - GH comments with backticks, `$`, or shell snippets: use heredoc/body file, not inline double-quoted `--body`.
 - PR create: real body required. Use the current template: `What Problem This Solves`, `Why This Change Was Made`, `User Impact`, and `Evidence`; include visible refs, behavior, and validation.
-- PR create races GitHub's merge-ref computation: the pull_request-open CI run can drop entirely or die as `startup_failure`/`BuildFailed` (`(Unknown event)`, not rerunnable). Prevention: `gh pr create --draft`, poll `mergeable` non-null, then `gh pr ready`. After opening, verify the CI workflow attached to the head SHA; if missing, the hourly `pr-ci-sweeper` re-fires it, or close/reopen manually.
+- PR create races GitHub's merge-ref computation: the pull_request-open CI run can drop entirely or die as `startup_failure`/`BuildFailed` (`(Unknown event)`, not rerunnable). Prevention: `gh pr create --draft`, poll `mergeable` non-null, then `gh pr ready`. After opening, verify the retained OpenCraw CI workflow attached to the head SHA; if missing, close/reopen manually.
 - PR create/refresh: keep PR branches takeover-ready. Use a branch maintainers can push to, or for fork PRs ensure `maintainer_can_modify` / GitHub's `Allow edits by maintainers` is enabled unless explicitly told otherwise or GitHub's Actions/secrets warning makes that unsafe.
 - GitHub issue/PR create: read `$agent-transcript`; ask about sanitized transcript logs when available.
 - Contributor PRs: parsed context requires authored `What Problem This Solves` and `Evidence` sections. Do not require field-level proof forms; reviewers inspect code, tests, and CI for correctness.
-- PR artifacts/screenshots: attach to PR/comment/external artifact store. Never push screenshots, videos, proof images, or proof assets to OpenClaw or any product repo branch, including temp artifact branches. Use Crabbox artifact publishing plus the manifest URL. Do not commit `.github/pr-assets`.
 - CI polling: exact SHA, relevant checks only, minimal fields. Skip routine noise (`Auto response`, `Labeler`, docs agents, performance/stale). Logs only after failure/completion or concrete need. Never `gh run watch`; its 3s polling exhausts API quota. Use sparse GraphQL rollups. Filter `gh run list` by workflow/branch/commit; broad JSON lists can exceed relay caps. `gh --jq` has no jq `--arg`; use `--commit` for SHA filtering. Reruns need `gh run view <run> --attempt <n>`; default output may show the prior attempt.
-- Trusted-workflow release-branch CI: pass `target_ref` + `release_candidate_ref`; never `release_gate` (requires workflow head == target).
-- Agent PR landing to `main`: use only the repo-native `scripts/pr` wrapper: run `scripts/pr review-init <PR>`, follow its emitted checkout/guard guidance, initialize and complete review artifacts with `scripts/pr review-artifacts-init <PR>`, validate them with `scripts/pr review-validate-artifacts <PR>`, then run `OPENCLAW_TESTBOX=1 scripts/pr prepare-run <PR>` and `scripts/pr merge-run <PR>`. The Testbox flag is mandatory for agents so prepare verifies hosted CI/Testbox on the current head or reuses a patch-identical pre-rebase run green within 24 hours instead of running full gates locally. `prepare-run` fails fast; invoke only after exact-head CI is complete and green. For owner-approved reviewed fork code without hosted Testbox, use `OPENCLAW_PR_GATES_REMOTE=testbox` instead. Do not rebase only because `main` advanced; merge drift is advisory unless strict drift is explicitly enabled, while GitHub still blocks conflicts. Do not idle on `auto-response` or `check-docs`.
+- Agent PR landing to `main`: use only the repository-native `scripts/pr` sequence. Run `scripts/pr review-init <PR>`, follow its checkout and exact-head guard, initialize and complete artifacts with `scripts/pr review-artifacts-init <PR>`, validate them with `scripts/pr review-validate-artifacts <PR>`, complete the affected direct CrawDevAi proof and retained exact-head OpenCraw CI, then run `scripts/pr prepare-run <PR>` and `scripts/pr merge-run <PR>`. Stop if source remains untrusted or any direct proof, artifact, exact-head guard, preparation, or retained CI is unavailable or fails. Never select or delegate to another runner.
 - After GitHub throttling, check core quota before `scripts/pr prepare-run` or `merge-run`. A failed operation can retain its lock; verify no child remains, then recover only with its emitted token.
 - Local `scripts/pr`: unset `GITHUB_TOKEN`, `GH_TOKEN`, `HOMEBREW_GITHUB_API_TOKEN`; ambient tokens can select an exhausted or wrong identity.
 - Non-main PRs: do not run `scripts/pr prepare-run` or `merge-run`; they diff against `main`. Use review artifacts, exact base-head CI, revalidate `headRefOid`, then `gh pr merge --match-head-commit <verified-sha>`.
@@ -370,9 +319,6 @@ Skills own workflows; root owns hard policy and routing.
 - Mac app permission testing: stable app path + real signing identity required. No `--no-sign`, `SIGN_IDENTITY=-`, or raw debug binary; TCC prompts/listing won't stick.
 - Version bump surfaces live in `$release-openclaw-maintainer`.
 - Parallels: `$openclaw-parallels-smoke`; Discord roundtrip: `$parallels-discord-roundtrip`.
-- Crabbox/WebVNC human demos: keep remote desktop visible/windowed; no fullscreen remote browser unless video/capture-style output.
-- Before sharing WebVNC links, use Crabbox screenshot first; verify real app/path works and target UI is not broken.
-- ClawSweeper ops: `$clawsweeper`. Deployed hook sessions may post one concise `#clawsweeper` note only when surprising/actionable/risky; if using message tool, reply exactly `NO_REPLY`.
 - Generated-media completions wake the requester agent first. Requester visible-reply config decides final text vs message tool; direct media send is fallback/recovery only.
 - `message_tool_only`: normal agent final visible reply = current-source `message(action=send)` only. No `NO_REPLY` prompt/contract; no message call = no source reply. Plugin-owned bound-thread reply = plugin return value; no message tool needed. Never auto-publish private final.
 - Memory wiki prompt digest stays tiny; prefer `wiki_search` / `wiki_get`; verify contact data before use; source-class provenance for generated people facts.
