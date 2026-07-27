@@ -158,7 +158,7 @@
       "artifact": "soak-100/qa-suite-summary.json",
       "required": true,
       "missingVerdict": "environment-blocked",
-      "missingReason": "Scheduled/Testbox soak runner did not upload artifacts for this proof bundle.",
+      "missingReason": "The retired upstream soak lane did not produce an OpenCraw direct-proof artifact.",
       "productImpact": "P3",
       "qaImpact": "P2",
       "ownerAction": "Run remotely with a long timeout or record the runner budget blocker.",

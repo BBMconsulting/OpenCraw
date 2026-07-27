@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Live ClawHub skill install proof for package-backed Docker/Testbox lanes.
+# Live ClawHub skill install proof for package-backed direct local Docker lanes.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"

@@ -11,7 +11,7 @@ import {
 import { createNodeTestShards } from "./ci-node-test-plan.mjs";
 import { buildPluginSdkEntrySources, publicPluginSdkEntrypoints } from "./plugin-sdk-entries.mjs";
 
-const DEFAULT_NODE_TEST_RUNNER = "blacksmith-8vcpu-ubuntu-2404";
+const DEFAULT_NODE_TEST_RUNNER = "ubuntu-24.04";
 const MAX_CHANGED_NODE_TEST_TARGETS = 96;
 // Each target runs in its own child process (isolation contract), so bound the
 // serial tail per job; the shard runner overlaps two children at a time.

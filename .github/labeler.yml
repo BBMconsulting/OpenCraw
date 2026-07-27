@@ -437,10 +437,6 @@
       - any-glob-to-any-file:
           - "extensions/clawrouter/**"
           - "docs/providers/clawrouter.md"
-"extensions: crabbox":
-  - changed-files:
-      - any-glob-to-any-file:
-          - "extensions/crabbox/**"
 "extensions: deepseek":
   - changed-files:
       - any-glob-to-any-file:

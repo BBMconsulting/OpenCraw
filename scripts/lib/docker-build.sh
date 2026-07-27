@@ -19,7 +19,7 @@ docker_build_on_missing_enabled() {
       ;;
   esac
 
-  [ "${OPENCLAW_TESTBOX:-0}" = "1" ]
+  return 1
 }
 
 docker_build_command() {

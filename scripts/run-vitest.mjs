@@ -164,7 +164,7 @@ export function resolveMissingVitestDependencyMessage(baseDir = repoRoot, fsImpl
     reason,
     "Install dependencies before running scripts/run-vitest.mjs:",
     "  pnpm install --frozen-lockfile",
-    "For raw Crabbox/AWS macOS source syncs, hydrate or install dependencies before this runner.",
+    "Run dependency installation only in the assigned trusted checkout.",
   ].join("\n");
 }
 

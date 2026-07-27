@@ -448,13 +448,6 @@ describe("ensurePlaywrightChromium", () => {
         platform: "linux",
       }),
     ).toBe(true);
-    expect(
-      shouldInstallPlaywrightSystemDependencies({
-        env: { OPENCLAW_TESTBOX: "1" },
-        getuid: () => 501,
-        platform: "linux",
-      }),
-    ).toBe(true);
   });
 
   it("installs Linux system Chromium packages with sudo for non-root lanes", () => {

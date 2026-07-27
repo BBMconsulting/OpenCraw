@@ -1,4 +1,4 @@
-// Runs the broad verification graph used by Crabbox/Testbox: check then test.
+// Runs the inherited broad diagnostic graph: check then test.
 import { performance } from "node:perf_hooks";
 import { formatMs, printTimingSummary } from "./lib/check-timing-summary.mjs";
 import { runManagedCommand } from "./lib/managed-child-process.mjs";
@@ -38,7 +38,7 @@ function parseVerifyArgs(argv) {
 }
 
 async function runStage(stage) {
-  console.error(`CRABBOX_PHASE:${stage.name}`);
+  console.error(`OPENCRAW_PHASE:${stage.name}`);
   console.error(`[verify] ${stage.name}`);
   const startedAt = performance.now();
   const status = await runManagedCommand({

@@ -44,9 +44,7 @@ openclaw_live_read_positive_int_env() {
 }
 
 openclaw_live_is_ci() {
-  openclaw_live_truthy "${CI:-}" \
-    || openclaw_live_truthy "${GITHUB_ACTIONS:-}" \
-    || openclaw_live_truthy "${OPENCLAW_TESTBOX:-}"
+  openclaw_live_truthy "${CI:-}" || openclaw_live_truthy "${GITHUB_ACTIONS:-}"
 }
 
 openclaw_live_uses_managed_bind_dirs() {
@@ -58,11 +56,6 @@ openclaw_live_uses_managed_bind_dirs() {
 openclaw_live_default_profile_file() {
   if [[ -n "${OPENCLAW_PROFILE_FILE:-}" ]]; then
     printf '%s\n' "$OPENCLAW_PROFILE_FILE"
-    return 0
-  fi
-  local testbox_profile="$HOME/.openclaw-testbox-live.profile"
-  if [[ -f "$testbox_profile" ]]; then
-    printf '%s\n' "$testbox_profile"
     return 0
   fi
   printf '%s\n' "$HOME/.profile"

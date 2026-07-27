@@ -287,7 +287,7 @@ export function buildTelegramEvidenceManifest({
       label: "Telegram live transcript",
       path: "telegram-live-desktop.png",
       targetPath: "telegram-live-desktop.png",
-      alt: "Rendered Telegram live transcript in a Crabbox desktop browser",
+      alt: "Rendered Telegram live transcript in a direct QA desktop browser",
       width: 720,
       inline: true,
       required: false,
@@ -373,7 +373,7 @@ export function buildTelegramEvidenceManifest({
     id: "telegram-live",
     title: "Mantis Telegram Live QA",
     summary:
-      "Mantis ran the Telegram live QA lane with Convex-leased credentials, rendered a redacted transcript in a Crabbox desktop browser, and captured screenshot/video evidence for PR review.",
+      "Mantis ran the Telegram live QA lane with Convex-leased credentials, rendered a redacted transcript in a direct QA desktop browser, and captured screenshot/video evidence for PR review.",
     scenario,
     comparison: {
       candidate: {

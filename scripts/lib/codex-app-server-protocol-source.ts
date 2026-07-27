@@ -123,7 +123,7 @@ export function validateCodexProtocolGenerationHeadroom(params: {
       `${params.pathLabel} has ${formatBytes(params.freeBytes)} free; requires at least ${formatBytes(
         params.minFreeBytes,
       )}.`,
-      "Run this check on Crabbox/Testbox, free local disk, or set OPENCLAW_CODEX_PROTOCOL_MIN_FREE_BYTES=0 to override intentionally.",
+      "Free local disk or set OPENCLAW_CODEX_PROTOCOL_MIN_FREE_BYTES=0 to override intentionally.",
     ].join("\n"),
   );
 }

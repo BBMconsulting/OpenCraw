@@ -10,7 +10,7 @@ source "$TRUSTED_HARNESS_DIR/scripts/lib/docker-e2e-image.sh"
 
 IMAGE_NAME="$(docker_e2e_resolve_image "openclaw-code-mode-namespace-live-e2e" OPENCLAW_CODE_MODE_NAMESPACE_LIVE_E2E_IMAGE)"
 SKIP_BUILD="${OPENCLAW_CODE_MODE_NAMESPACE_LIVE_E2E_SKIP_BUILD:-0}"
-PROFILE_FILE="${OPENCLAW_CODE_MODE_NAMESPACE_LIVE_PROFILE_FILE:-${OPENCLAW_TESTBOX_PROFILE_FILE:-$HOME/.openclaw-testbox-live.profile}}"
+PROFILE_FILE="${OPENCLAW_CODE_MODE_NAMESPACE_LIVE_PROFILE_FILE:-${OPENCLAW_PROFILE_FILE:-$HOME/.profile}}"
 run_log=""
 if [ ! -f "$PROFILE_FILE" ] && [ -f "$HOME/.profile" ]; then
   PROFILE_FILE="$HOME/.profile"

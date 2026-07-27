@@ -472,230 +472,14 @@ const INSTALL_DOCKERFILE_TEST_TARGETS = [
 const LIVE_MEDIA_RUNNER_IMAGE_TEST_TARGETS = ["test/scripts/package-acceptance-workflow.test.ts"];
 const GITHUB_YAML_PINNING_GUARD_TEST_TARGETS = ["test/scripts/ci-workflow-guards.test.ts"];
 const GITHUB_WORKFLOW_OWNER_TEST_TARGETS = new Map([
+  [".github/workflows/docs.yml", ["test/scripts/opencraw-actions-policy.test.ts"]],
   [
-    ".github/workflows/ci-build-artifacts-testbox.yml",
-    ["test/scripts/install-trufflehog.test.ts", "test/scripts/package-acceptance-workflow.test.ts"],
-  ],
-  [
-    ".github/workflows/ci-check-arm-testbox.yml",
-    ["test/scripts/install-trufflehog.test.ts", "test/scripts/package-acceptance-workflow.test.ts"],
-  ],
-  [
-    ".github/workflows/ci-check-testbox.yml",
+    ".github/workflows/opencraw-ci.yml",
     [
-      "test/scripts/changed-lanes.test.ts",
-      "test/scripts/install-trufflehog.test.ts",
-      "test/scripts/package-acceptance-workflow.test.ts",
+      "test/scripts/opencraw-actions-policy.test.ts",
+      "test/scripts/opencraw-external-validation-policy.test.ts",
     ],
   ],
-  [
-    ".github/workflows/ci.yml",
-    [
-      "test/scripts/changed-lanes.test.ts",
-      "test/scripts/check-workflows.test.ts",
-      "test/scripts/plugin-contract-test-plan.test.ts",
-      "test/scripts/plugin-prerelease-test-plan.test.ts",
-      "test/scripts/verify-pr-hosted-gates.test.ts",
-    ],
-  ],
-  [".github/workflows/crabbox-hydrate.yml", ["test/scripts/package-acceptance-workflow.test.ts"]],
-  [".github/workflows/dependency-guard.yml", ["test/scripts/dependency-guard-workflow.test.ts"]],
-  [".github/workflows/docker-release.yml", ["src/dockerfile.test.ts"]],
-  [
-    ".github/workflows/full-release-validation.yml",
-    [
-      "src/dockerfile.test.ts",
-      "test/scripts/package-acceptance-workflow.test.ts",
-      "test/scripts/plugin-prerelease-test-plan.test.ts",
-    ],
-  ],
-  [
-    ".github/workflows/install-smoke.yml",
-    [
-      "test/scripts/install-smoke-no-push-workflow.test.ts",
-      "test/scripts/test-install-sh-docker.test.ts",
-    ],
-  ],
-  [
-    ".github/workflows/install-smoke-reusable.yml",
-    [
-      "test/scripts/install-smoke-no-push-workflow.test.ts",
-      "test/scripts/test-install-sh-docker.test.ts",
-    ],
-  ],
-  [
-    ".github/workflows/ios-periphery-comment.yml",
-    ["test/scripts/ios-periphery-comment-workflow.test.ts"],
-  ],
-  [
-    ".github/workflows/ios-periphery.yml",
-    [
-      "test/scripts/ios-periphery-comment-workflow.test.ts",
-      "test/scripts/periphery-scope-workflows.test.ts",
-    ],
-  ],
-  [
-    ".github/workflows/macos-periphery.yml",
-    [
-      "test/scripts/ios-periphery-comment-workflow.test.ts",
-      "test/scripts/periphery-scope-workflows.test.ts",
-    ],
-  ],
-  [
-    ".github/workflows/shared-openclawkit-periphery.yml",
-    [
-      "test/scripts/periphery-intersection.test.ts",
-      "test/scripts/periphery-scope-workflows.test.ts",
-    ],
-  ],
-  [
-    ".github/workflows/live-media-runner-image.yml",
-    ["test/scripts/package-acceptance-workflow.test.ts"],
-  ],
-  [".github/workflows/macos-release.yml", ["test/scripts/package-acceptance-workflow.test.ts"]],
-  [
-    ".github/workflows/mantis-scenario.yml",
-    ["test/scripts/mantis-telegram-desktop-proof-workflow.test.ts"],
-  ],
-  [
-    ".github/workflows/mantis-telegram-desktop-proof.yml",
-    [
-      "test/scripts/mantis-telegram-desktop-proof-workflow.test.ts",
-      "test/scripts/package-acceptance-workflow.test.ts",
-    ],
-  ],
-  [
-    ".github/workflows/mantis-web-ui-chat-proof.yml",
-    [
-      "test/scripts/mantis-web-ui-chat-proof-workflow.test.ts",
-      "test/scripts/package-acceptance-workflow.test.ts",
-    ],
-  ],
-  [
-    ".github/workflows/mantis-discord-smoke.yml",
-    ["test/scripts/package-acceptance-workflow.test.ts"],
-  ],
-  [
-    ".github/workflows/mantis-discord-status-reactions.yml",
-    ["test/scripts/package-acceptance-workflow.test.ts"],
-  ],
-  [
-    ".github/workflows/mantis-discord-thread-attachment.yml",
-    ["test/scripts/package-acceptance-workflow.test.ts"],
-  ],
-  [
-    ".github/workflows/mantis-slack-desktop-smoke.yml",
-    ["test/scripts/package-acceptance-workflow.test.ts"],
-  ],
-  [
-    ".github/workflows/mantis-telegram-live.yml",
-    [
-      "test/scripts/mantis-telegram-desktop-proof-workflow.test.ts",
-      "test/scripts/package-acceptance-workflow.test.ts",
-    ],
-  ],
-  [
-    ".github/workflows/npm-telegram-beta-e2e.yml",
-    ["test/scripts/package-acceptance-workflow.test.ts"],
-  ],
-  [".github/workflows/android-release.yml", ["test/scripts/package-acceptance-workflow.test.ts"]],
-  [
-    ".github/workflows/openclaw-cross-os-release-checks-reusable.yml",
-    [
-      "test/scripts/openclaw-cross-os-release-checks.test.ts",
-      "test/scripts/openclaw-cross-os-release-workflow.test.ts",
-      "test/scripts/package-acceptance-workflow.test.ts",
-    ],
-  ],
-  [
-    ".github/workflows/openclaw-live-and-e2e-checks-reusable.yml",
-    [
-      "test/scripts/package-acceptance-workflow.test.ts",
-      "test/scripts/release-workflow-matrix-plan.test.ts",
-      "test/scripts/test-install-sh-docker.test.ts",
-    ],
-  ],
-  [
-    ".github/workflows/openclaw-npm-release.yml",
-    [
-      "test/openclaw-npm-postpublish-verify.test.ts",
-      "test/scripts/package-acceptance-workflow.test.ts",
-    ],
-  ],
-  [
-    ".github/workflows/openclaw-performance.yml",
-    ["test/scripts/openclaw-performance-workflow.test.ts"],
-  ],
-  [
-    ".github/workflows/openclaw-release-checks.yml",
-    [
-      "test/scripts/openclaw-cross-os-release-checks.test.ts",
-      "test/scripts/package-acceptance-workflow.test.ts",
-      "test/scripts/plugin-prerelease-test-plan.test.ts",
-      "test/scripts/test-install-sh-docker.test.ts",
-    ],
-  ],
-  [
-    ".github/workflows/openclaw-release-publish.yml",
-    ["test/scripts/package-acceptance-workflow.test.ts"],
-  ],
-  [
-    ".github/workflows/openclaw-scheduled-live-checks.yml",
-    [
-      "test/scripts/package-acceptance-workflow.test.ts",
-      "test/scripts/release-no-push-workflow.test.ts",
-    ],
-  ],
-  [
-    ".github/workflows/openclaw-stable-main-closeout.yml",
-    ["test/scripts/package-acceptance-workflow.test.ts"],
-  ],
-  [
-    ".github/workflows/package-acceptance.yml",
-    ["test/scripts/package-acceptance-workflow.test.ts"],
-  ],
-  [
-    ".github/workflows/plugin-clawhub-new.yml",
-    [
-      "test/scripts/package-acceptance-workflow.test.ts",
-      "test/scripts/plugin-clawhub-new-workflow.test.ts",
-    ],
-  ],
-  [
-    ".github/workflows/plugin-clawhub-release.yml",
-    ["test/scripts/package-acceptance-workflow.test.ts"],
-  ],
-  [
-    ".github/workflows/plugin-npm-release.yml",
-    [
-      "test/scripts/package-acceptance-workflow.test.ts",
-      "test/scripts/plugin-npm-extended-stable-workflow.test.ts",
-    ],
-  ],
-  [".github/workflows/plugin-prerelease.yml", ["test/scripts/plugin-prerelease-test-plan.test.ts"]],
-  [
-    ".github/workflows/qa-live-transports-convex.yml",
-    ["test/scripts/package-acceptance-workflow.test.ts"],
-  ],
-  [
-    ".github/workflows/sandbox-common-smoke.yml",
-    ["test/scripts/sandbox-common-smoke-workflow.test.ts"],
-  ],
-  [
-    ".github/workflows/security-sensitive-guard.yml",
-    ["test/scripts/security-sensitive-guard-workflow.test.ts"],
-  ],
-  [".github/workflows/tui-pty.yml", ["test/scripts/package-acceptance-workflow.test.ts"]],
-  [".github/workflows/update-migration.yml", ["test/scripts/package-acceptance-workflow.test.ts"]],
-  [
-    ".github/workflows/website-installer-sync.yml",
-    ["test/scripts/website-installer-sync-workflow.test.ts"],
-  ],
-  [
-    ".github/workflows/windows-node-release.yml",
-    ["test/scripts/package-acceptance-workflow.test.ts"],
-  ],
-  [".github/workflows/windows-testbox-probe.yml", ["test/scripts/check-workflows.test.ts"]],
 ]);
 const TOOLING_SOURCE_TEST_TARGETS = new Map([
   ["Dockerfile", ROOT_DOCKERFILE_TEST_TARGETS],
@@ -703,7 +487,6 @@ const TOOLING_SOURCE_TEST_TARGETS = new Map([
     ".agents/skills/openclaw-changelog-update/scripts/verify-release-notes.mjs",
     ["test/scripts/release-notes-ledger.test.ts", "test/scripts/verify-release-notes.test.ts"],
   ],
-  [".crabbox.yaml", ["test/scripts/package-acceptance-workflow.test.ts"]],
   [".github/actions/detect-docs-changes/action.yml", ["test/scripts/ci-workflow-guards.test.ts"]],
   [
     ".github/actions/create-generated-pr-tokens/action.yml",
@@ -754,18 +537,6 @@ const TOOLING_SOURCE_TEST_TARGETS = new Map([
     ["test/scripts/security-sensitive-guard-workflow.test.ts"],
   ],
   [
-    ".github/workflows/ci-check-testbox.yml",
-    ["test/scripts/ci-workflow-guards.test.ts", "test/scripts/package-acceptance-workflow.test.ts"],
-  ],
-  [
-    ".github/workflows/ci-check-arm-testbox.yml",
-    ["test/scripts/ci-workflow-guards.test.ts", "test/scripts/package-acceptance-workflow.test.ts"],
-  ],
-  [
-    ".github/workflows/crabbox-hydrate.yml",
-    ["test/scripts/ci-workflow-guards.test.ts", "test/scripts/package-acceptance-workflow.test.ts"],
-  ],
-  [
     ".github/workflows/live-media-runner-image.yml",
     [...LIVE_MEDIA_RUNNER_IMAGE_TEST_TARGETS, "test/scripts/ci-workflow-guards.test.ts"],
   ],
@@ -785,8 +556,6 @@ const TOOLING_SOURCE_TEST_TARGETS = new Map([
   ],
   ["scripts/build-all.mjs", ["test/scripts/build-all.test.ts"]],
   ["scripts/build-stamp.mjs", ["src/infra/build-stamp.test.ts"]],
-  ["scripts/crabbox-wrapper-providers.mjs", ["test/scripts/crabbox-wrapper.test.ts"]],
-  ["scripts/crabbox-wrapper.mjs", ["test/scripts/crabbox-wrapper.test.ts"]],
   ["scripts/github/barnacle-auto-response.mjs", ["test/scripts/barnacle-auto-response.test.ts"]],
   ["scripts/changed-lanes.mjs", ["test/scripts/changed-lanes.test.ts"]],
   [
@@ -1112,7 +881,6 @@ const TOOLING_SOURCE_TEST_TARGETS = new Map([
     ],
   ],
   ["scripts/github/resolve-openclaw-ref.sh", ["test/scripts/resolve-openclaw-ref.test.ts"]],
-  ["scripts/ci-hydrate-testbox-env.sh", ["test/scripts/ci-hydrate-testbox-env.test.ts"]],
   ["scripts/install-trufflehog.sh", ["test/scripts/install-trufflehog.test.ts"]],
   [
     "scripts/github/run-openclaw-cross-os-release-checks.sh",
@@ -1707,10 +1475,6 @@ const TOOLING_SOURCE_TEST_TARGETS = new Map([
     ],
   ],
   ["scripts/measure-rpc-rtt.mjs", ["test/scripts/measure-rpc-rtt.test.ts"]],
-  [
-    "scripts/e2e/telegram-user-crabbox-proof.ts",
-    ["test/scripts/telegram-user-crabbox-proof.test.ts"],
-  ],
   ["scripts/e2e/telegram-user-credential.ts", ["test/scripts/telegram-user-credential.test.ts"]],
   ["scripts/e2e/telegram-user-credential-io.ts", ["test/scripts/telegram-user-credential.test.ts"]],
   [

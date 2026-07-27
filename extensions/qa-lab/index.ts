@@ -5,7 +5,6 @@ import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 import { jsonResult } from "openclaw/plugin-sdk/tool-results";
 import { registerQaLabCli } from "./src/cli.js";
 import { createQaLabWebSearchProvider } from "./src/qa-web-search-provider.js";
-import { createStaticSshWorkerProvider } from "./src/static-ssh-worker-provider.js";
 
 const EMPTY_TOOL_PARAMETERS = {
   type: "object",
@@ -43,7 +42,6 @@ export default definePluginEntry({
       },
       { name: "qa_restart_unsafe_probe" },
     );
-    api.registerWorkerProvider(createStaticSshWorkerProvider());
     api.registerWebSearchProvider(createQaLabWebSearchProvider());
     api.registerCli(
       async ({ program }) => {

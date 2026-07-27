@@ -210,7 +210,7 @@ async function measurePhase(params: {
   const ensureStarted = performance.now();
   const ensureResult = await ensureOpenClawModelsJson(params.config, params.agentDir, {
     // Keep this harness deterministic by measuring configured-model scale.
-    // Live provider catalog timing belongs in a separate Crabbox lane with secrets.
+    // Live-provider timing requires a separately authorized credentialed lane.
     providerDiscoveryProviderIds: [],
     providerDiscoveryTimeoutMs: 5_000,
     workspaceDir: params.workspaceDir,

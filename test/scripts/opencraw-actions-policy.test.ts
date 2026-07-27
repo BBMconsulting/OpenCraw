@@ -29,4 +29,11 @@ describe("OpenCraw GitHub Actions policy", () => {
       );
     }
   });
+
+  it("keeps the shared setup action direct and GitHub-hosted", () => {
+    const source = readFileSync(".github/actions/setup-node-env/action.yml", "utf8");
+    expect(source).toContain("uses: ./.github/actions/setup-pnpm-store-cache");
+    expect(source).toContain('pnpm "${install_args[@]}"');
+    expect(source).not.toMatch(/(?:testbox|crabbox|blacksmith|sticky-disk)/iu);
+  });
 });

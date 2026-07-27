@@ -2094,7 +2094,7 @@ describe("package artifact reuse", () => {
     expect(liveDockerAuth).toContain("openclaw_live_stage_profile_into_home()");
     expect(liveDockerAuth).toContain("openclaw_live_chown_bind_dirs_for_container_user()");
     expect(liveDockerAuth).toContain("openclaw_live_uses_managed_bind_dirs()");
-    expect(liveDockerAuth).toContain('openclaw_live_truthy "${OPENCLAW_TESTBOX:-}"');
+    expect(liveDockerAuth).not.toContain("OPENCLAW_TESTBOX");
     expect(liveDockerAuth).toContain('[[ -n "${OPENCLAW_DOCKER_CACHE_HOME_DIR:-}" ]]');
     expect(liveDockerAuth).toContain(
       'timeout_value="${2:-${OPENCLAW_LIVE_DOCKER_RUN_TIMEOUT:-2700s}}"',

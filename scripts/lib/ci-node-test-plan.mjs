@@ -20,8 +20,8 @@ const EXCLUDED_FULL_SUITE_SHARDS = new Set([
 ]);
 
 const EXCLUDED_PROJECT_CONFIGS = new Set(["test/vitest/vitest.channels.config.ts"]);
-const DEFAULT_NODE_TEST_RUNNER = "blacksmith-8vcpu-ubuntu-2404";
-const BUNDLED_NODE_TEST_RUNNER = "blacksmith-4vcpu-ubuntu-2404";
+const DEFAULT_NODE_TEST_RUNNER = "ubuntu-24.04";
+const BUNDLED_NODE_TEST_RUNNER = "ubuntu-24.04";
 // Startup-core transforms the broad gateway graph before its assertions run.
 // Keep enough CPU here to avoid spending minutes in Vitest imports on 4 vCPU.
 const GATEWAY_STARTUP_CORE_RUNNER = DEFAULT_NODE_TEST_RUNNER;
@@ -49,7 +49,7 @@ const AUTO_REPLY_COMMANDS_STRIPES = 3;
 const AGENTS_CORE_RUNNER_CLI_STRIPES = 3;
 const UNIT_FAST_NODE_TEST_STRIPES = 2;
 // Advisory runtime estimates (seconds) per split shard: [shard:*] begin->end
-// wall clock across seven green Blacksmith compact PR runs after the
+// wall clock across seven green retained GitHub Actions compact runs after the
 // cli-runner reliability whale fix (29605136624, 29605203485, 29605983019,
 // 29606701461, 29611308972, 29611457693, 29611500865), averaged after
 // dropping cache-warm/contention outliers outside [median/1.5, median*1.5].
@@ -153,7 +153,7 @@ const COMPACT_GROUP_SECONDS_HINTS = new Map([
 // re-evaluation cost that dominates these serial suites.
 const STRIPE_FILE_SECONDS_HINTS = new Map([
   // cli-runner entries are CI wall clock (begin->checkmark deltas from the
-  // compact runs above), refreshed by focused Testbox profiling where noted.
+  // compact runs above), refreshed by focused direct CrawDevAi profiling where noted.
   ["src/agents/cli-runner.context-engine.test.ts", 6],
   // Fresh profile: 5.1s total, 3.8s import; retain a conservative packing hint.
   ["src/agents/cli-runner.reliability.test.ts", 8],
@@ -169,7 +169,6 @@ const STRIPE_FILE_SECONDS_HINTS = new Map([
   ["test/scripts/bundled-plugin-install-uninstall-probe.test.ts", 4],
   ["test/scripts/changed-lanes.test.ts", 5],
   ["test/scripts/ci-workflow-guards.test.ts", 12],
-  ["test/scripts/crabbox-wrapper.test.ts", 19],
   ["test/scripts/find-reusable-release-validation.test.ts", 8],
   ["test/scripts/install-sh.test.ts", 6],
   ["test/scripts/kitchen-sink-rpc-walk.test.ts", 5],
@@ -1002,7 +1001,7 @@ function createInfraSplitShards() {
       configs: ["test/vitest/vitest.infra.config.ts"],
       includePatterns: groups.get(shardName) ?? [],
       requiresDist: false,
-      runner: "blacksmith-4vcpu-ubuntu-2404",
+      runner: "ubuntu-24.04",
       shardName,
     }))
     .filter((shard) => shard.includePatterns.length > 0);
@@ -1094,14 +1093,14 @@ const SPLIT_NODE_SHARDS = new Map([
         shardName: "core-runtime-hooks",
         configs: ["test/vitest/vitest.hooks.config.ts"],
         requiresDist: false,
-        runner: "blacksmith-4vcpu-ubuntu-2404",
+        runner: "ubuntu-24.04",
       },
       ...createInfraSplitShards(),
       {
         shardName: "core-runtime-secrets",
         configs: ["test/vitest/vitest.secrets.config.ts"],
         requiresDist: false,
-        runner: "blacksmith-4vcpu-ubuntu-2404",
+        runner: "ubuntu-24.04",
       },
       {
         shardName: "core-runtime-infra-process",
@@ -1111,7 +1110,7 @@ const SPLIT_NODE_SHARDS = new Map([
           "test/vitest/vitest.runtime-config.config.ts",
         ],
         requiresDist: false,
-        runner: "blacksmith-4vcpu-ubuntu-2404",
+        runner: "ubuntu-24.04",
       },
       {
         shardName: "core-runtime-tui-pty",
@@ -1120,7 +1119,7 @@ const SPLIT_NODE_SHARDS = new Map([
           OPENCLAW_TUI_PTY_INCLUDE_LOCAL: "1",
         },
         requiresDist: false,
-        runner: "blacksmith-4vcpu-ubuntu-2404",
+        runner: "ubuntu-24.04",
       },
       {
         shardName: "core-runtime-media-ui",

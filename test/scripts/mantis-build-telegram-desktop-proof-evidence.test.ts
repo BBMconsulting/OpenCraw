@@ -31,7 +31,7 @@ function makeLane(name: string) {
   writeFileSync(screenshot, `${name} png`);
   writeFileSync(report, `${name} report`);
   writeFileSync(
-    path.join(outputDir, "telegram-user-crabbox-session-summary.json"),
+    path.join(outputDir, "telegram-user-session-summary.json"),
     JSON.stringify({
       artifacts: {
         previewGifCropped: path.relative(repo, gif),

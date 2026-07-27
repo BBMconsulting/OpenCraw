@@ -77,7 +77,7 @@ install_trufflehog() {
   local arch archive candidate checksum target tmp_dir url
 
   if [[ "$(uname -s)" != "Linux" ]]; then
-    log "this installer supports Linux Testbox environments only"
+    log "this installer supports Linux environments only"
     return 1
   fi
 

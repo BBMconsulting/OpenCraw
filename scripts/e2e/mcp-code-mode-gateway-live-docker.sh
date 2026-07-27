@@ -12,7 +12,7 @@ CLIENT_TIMEOUT_MS="$(docker_e2e_read_positive_int_env OPENCLAW_MCP_CODE_MODE_CLI
 CLIENT_BODY_MAX_BYTES="$(docker_e2e_read_positive_int_env OPENCLAW_MCP_CODE_MODE_CLIENT_BODY_MAX_BYTES 1048576)"
 TOKEN="mcp-code-mode-live-e2e-$(date +%s)-$$"
 CONTAINER_NAME="openclaw-mcp-code-mode-live-e2e-$$"
-PROFILE_FILE="${OPENCLAW_MCP_CODE_MODE_LIVE_PROFILE_FILE:-${OPENCLAW_TESTBOX_PROFILE_FILE:-$HOME/.openclaw-testbox-live.profile}}"
+PROFILE_FILE="${OPENCLAW_MCP_CODE_MODE_LIVE_PROFILE_FILE:-${OPENCLAW_PROFILE_FILE:-$HOME/.profile}}"
 
 CLIENT_LOG="$(mktemp -t openclaw-mcp-code-mode-live-log.XXXXXX)"
 
@@ -26,16 +26,25 @@ if [ ! -f "$PROFILE_FILE" ] && [ -f "$HOME/.profile" ]; then
   PROFILE_FILE="$HOME/.profile"
 fi
 
-PROFILE_MOUNT=()
 PROFILE_STATUS="none"
-if [ -f "$PROFILE_FILE" ] && [ -r "$PROFILE_FILE" ]; then
-  set -a
-  # shellcheck disable=SC1090
-  source "$PROFILE_FILE"
-  set +a
-  PROFILE_MOUNT=(-v "$PROFILE_FILE":/home/appuser/.profile:ro)
-  PROFILE_STATUS="$PROFILE_FILE"
-fi
+
+read_profile_env_value() {
+  local key="$1"
+  (
+    set +u
+    # shellcheck disable=SC1090
+    source "$PROFILE_FILE" >/dev/null
+    printf '%s' "${!key:-}"
+  )
+}
+
+for key in OPENAI_API_KEY OPENAI_BASE_URL; do
+  if [ -f "$PROFILE_FILE" ] && [ -r "$PROFILE_FILE" ] && [ -z "${!key:-}" ]; then
+    printf -v "$key" '%s' "$(read_profile_env_value "$key")"
+    PROFILE_STATUS="$PROFILE_FILE"
+  fi
+  export "$key"
+done
 
 if [ -z "${OPENAI_API_KEY:-}" ]; then
   echo "ERROR: OPENAI_API_KEY was not available after sourcing $PROFILE_STATUS." >&2
@@ -43,10 +52,6 @@ if [ -z "${OPENAI_API_KEY:-}" ]; then
 fi
 docker_e2e_build_or_reuse "$IMAGE_NAME" mcp-code-mode-gateway-live
 OPENCLAW_TEST_STATE_SCRIPT_B64="$(docker_e2e_test_state_shell_b64 mcp-code-mode-gateway-live empty)"
-
-# The profile is only a credential source. Keep this lane's OpenClaw runtime
-# isolated from host/testbox mode flags that can change packaged behavior.
-unset OPENCLAW_TESTBOX
 
 echo "Running live Docker Gateway code-mode MCP API-file smoke..."
 echo "Profile file: $PROFILE_STATUS"
@@ -71,19 +76,9 @@ docker_e2e_run_with_harness \
   -e "OPENCLAW_MCP_CODE_MODE_CLIENT_BODY_MAX_BYTES=$CLIENT_BODY_MAX_BYTES" \
   -e "OPENCLAW_ALLOW_INSECURE_PRIVATE_WS=1" \
   -e "OPENCLAW_MCP_CODE_MODE_MODEL=${OPENCLAW_MCP_CODE_MODE_LIVE_MODEL:-openclaw/main}" \
-  "${PROFILE_MOUNT[@]}" \
   "$IMAGE_NAME" \
   bash -lc "set -euo pipefail
     source scripts/lib/openclaw-e2e-instance.sh
-    for profile_path in \"\$HOME/.profile\" /home/appuser/.profile; do
-      if [ -f \"\$profile_path\" ] && [ -r \"\$profile_path\" ]; then
-        set +e +u
-        source \"\$profile_path\"
-        set -euo pipefail
-        break
-      fi
-    done
-    unset OPENCLAW_TESTBOX
     if [ -z \"\${OPENAI_API_KEY:-}\" ]; then
       echo \"ERROR: OPENAI_API_KEY was not available inside the container.\" >&2
       exit 1

@@ -38,7 +38,7 @@ export type RuntimeSelection =
   | { type: "embedded"; id: "openclaw" | "codex" | (string & {}) }
   | { type: "cli"; id: "claude-cli" | (string & {}) }
   | { type: "acp"; harness: "claude" | "cursor" | "gemini" | "opencode" | (string & {}) }
-  | { type: "managed"; provider: "local" | "node" | "testbox" | "cloud" | (string & {}) };
+  | { type: "managed"; provider: "local" | "node" | (string & {}) };
 
 /** Desired execution environment selection for future per-run routing. */
 export type EnvironmentSelection =

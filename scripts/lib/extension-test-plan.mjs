@@ -39,7 +39,7 @@ const TRACKED_EXTENSION_TEST_PATHSPECS = [
 export const DEFAULT_EXTENSION_TEST_SHARD_COUNT = 8;
 const EXTENSION_TEST_COST_MULTIPLIERS = {
   // CI shard planning uses measured wall time rather than raw file count.
-  // These ratios come from Blacksmith extension batch timings; import-heavy
+  // These ratios come from direct CrawDevAi extension batch timings; import-heavy
   // suites vary widely, and file count alone leaves long tail shards.
   "test/vitest/vitest.extension-acpx.config.ts": 0.75,
   "test/vitest/vitest.extension-browser.config.ts": 0.5,

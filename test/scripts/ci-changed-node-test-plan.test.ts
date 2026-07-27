@@ -17,7 +17,7 @@ describe("CI changed Node test plan", () => {
         checkName: "checks-node-changed",
         configs: [],
         requiresDist: false,
-        runner: "blacksmith-8vcpu-ubuntu-2404",
+        runner: "ubuntu-24.04",
         shardName: "changed",
         targets: [
           "src/agents/live-model-filter.test.ts",
@@ -36,7 +36,7 @@ describe("CI changed Node test plan", () => {
         checkName: "checks-node-changed",
         configs: [],
         requiresDist: false,
-        runner: "blacksmith-8vcpu-ubuntu-2404",
+        runner: "ubuntu-24.04",
         shardName: "changed",
         targets: ["test/extension-import-boundaries.test.ts"],
       },
@@ -44,7 +44,7 @@ describe("CI changed Node test plan", () => {
         checkName: "checks-node-changed-boundary",
         configs: ["test/vitest/vitest.boundary.config.ts"],
         requiresDist: false,
-        runner: "blacksmith-8vcpu-ubuntu-2404",
+        runner: "ubuntu-24.04",
         shardName: "changed-boundary",
       },
     ]);
@@ -144,7 +144,7 @@ describe("CI changed Node test plan", () => {
           checkName: "checks-node-changed-boundary",
           configs: ["test/vitest/vitest.boundary.config.ts"],
           requiresDist: false,
-          runner: "blacksmith-8vcpu-ubuntu-2404",
+          runner: "ubuntu-24.04",
           shardName: "changed-boundary",
         },
       ]);

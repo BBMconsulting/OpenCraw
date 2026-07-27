@@ -50,7 +50,7 @@ case "$SMOKE_MODE" in
     ;;
 esac
 
-PROFILE_FILE="${OPENCLAW_TESTBOX_PROFILE_FILE:-$HOME/.openclaw-testbox-live.profile}"
+PROFILE_FILE="${OPENCLAW_OPENWEBUI_PROFILE_FILE:-${OPENCLAW_PROFILE_FILE:-$HOME/.profile}}"
 if [[ -f "$PROFILE_FILE" && -r "$PROFILE_FILE" ]]; then
   set -a
   # shellcheck disable=SC1090

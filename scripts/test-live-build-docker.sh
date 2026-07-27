@@ -67,7 +67,7 @@ if [[ "${OPENCLAW_SKIP_DOCKER_BUILD:-}" == "1" ]]; then
     echo "Build it first or unset OPENCLAW_SKIP_DOCKER_BUILD." >&2
     exit 1
   fi
-  echo "==> Live-test image not available; building because OPENCLAW_DOCKER_BUILD_ON_MISSING/OPENCLAW_TESTBOX allows fallback."
+  echo "==> Live-test image not available; building because OPENCLAW_DOCKER_BUILD_ON_MISSING is enabled."
 fi
 
 echo "==> Build live-test image: $LIVE_IMAGE_NAME (target=build)"

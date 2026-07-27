@@ -444,7 +444,7 @@ print_log_tail "$LOG_PATH"
     ).toBe("linux/s390x");
   });
 
-  it("lets Testbox fall back to building when a reused Docker image is missing", () => {
+  it("requires an explicit local-build opt-in when a reused Docker image is missing", () => {
     const helper = readFileSync(HELPER_PATH, "utf8");
     const e2eImageHelper = readFileSync(DOCKER_E2E_IMAGE_HELPER_PATH, "utf8");
     const liveBuild = readFileSync(LIVE_BUILD_DOCKER_PATH, "utf8");
@@ -452,7 +452,7 @@ print_log_tail "$LOG_PATH"
 
     expect(helper).toContain("docker_build_on_missing_enabled()");
     expect(helper).toContain("OPENCLAW_DOCKER_BUILD_ON_MISSING");
-    expect(helper).toContain("OPENCLAW_TESTBOX");
+    expect(helper).not.toContain("OPENCLAW_TESTBOX");
     expect(e2eImageHelper).toContain("docker_build_on_missing_enabled");
     expect(e2eImageHelper).toContain("Docker image not available; building");
     expect(e2eImageHelper).toContain('docker_e2e_docker_cmd image inspect "$image_name"');
@@ -528,14 +528,15 @@ print_log_tail "$LOG_PATH"
     expect(decimal.stdout.trimEnd()).toBe("12.5");
   });
 
-  it("keeps Testbox image-build fallback before isolating live MCP code-mode runtime flags", () => {
+  it("keeps the live MCP code-mode script independent of external-runner flags", () => {
     const script = readFileSync(MCP_CODE_MODE_GATEWAY_LIVE_DOCKER_E2E_PATH, "utf8");
-    const buildIndex = script.indexOf('docker_e2e_build_or_reuse "$IMAGE_NAME"');
-    const unsetIndex = script.indexOf("unset OPENCLAW_TESTBOX");
 
-    expect(buildIndex).toBeGreaterThanOrEqual(0);
-    expect(unsetIndex).toBeGreaterThan(buildIndex);
-    expect(script).toContain("host/testbox mode flags that can change packaged behavior");
+    expect(script).toContain('docker_e2e_build_or_reuse "$IMAGE_NAME"');
+    expect(script).not.toContain("OPENCLAW_TESTBOX");
+    expect(script).toContain("for key in OPENAI_API_KEY OPENAI_BASE_URL");
+    expect(script).toContain("read_profile_env_value");
+    expect(script).not.toContain("PROFILE_MOUNT");
+    expect(script).not.toContain("/home/appuser/.profile:ro");
   });
 
   it("wraps centralized Docker builds with the timeout helper", () => {
@@ -4326,7 +4327,7 @@ heartbeat_elapsed="\${BASH_REMATCH[1]}"
     );
     expect(wrapper).toContain("OPENCLAW_INSTALL_E2E_PROFILE_FILE");
     expect(wrapper).toContain("OPENCLAW_PROFILE_FILE");
-    expect(wrapper).toContain("OPENCLAW_TESTBOX_PROFILE_FILE");
+    expect(wrapper).not.toContain("OPENCLAW_TESTBOX_PROFILE_FILE");
     expect(wrapper).toContain("read_profile_env_value");
     expect(wrapper).toContain('source "$PROFILE_FILE"');
     expect(wrapper).not.toContain("set -a");

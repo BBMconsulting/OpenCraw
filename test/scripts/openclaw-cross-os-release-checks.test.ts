@@ -907,7 +907,7 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
       display_name: "Windows",
       lane: "upgrade",
       os_id: "windows",
-      runner: "blacksmith-32vcpu-windows-2025",
+      runner: "windows-2025",
       suite: "dev-update",
       suite_label: "dev update",
     });
@@ -918,7 +918,7 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
       display_name: "Linux",
       lane: "fresh",
       os_id: "ubuntu",
-      runner: "blacksmith-8vcpu-ubuntu-2404",
+      runner: "ubuntu-24.04",
       suite: "installer-fresh",
       suite_label: "installer fresh",
     });
@@ -929,7 +929,7 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
       display_name: "macOS",
       lane: "fresh",
       os_id: "macos",
-      runner: "blacksmith-6vcpu-macos-15",
+      runner: "macos-15",
       suite: "packaged-fresh",
       suite_label: "packaged fresh",
     });
@@ -965,7 +965,7 @@ describe("scripts/openclaw-cross-os-release-checks", () => {
         display_name: "Windows",
         lane: "upgrade",
         os_id: "windows",
-        runner: "blacksmith-32vcpu-windows-2025",
+        runner: "windows-2025",
         suite: "packaged-upgrade",
         suite_label: "packaged upgrade",
       },

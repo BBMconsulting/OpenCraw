@@ -35,7 +35,7 @@ describe("scripts/test-live-codex-harness-docker.sh", () => {
       "OPENCLAW_LIVE_CODEX_HARNESS_AUTH=codex-auth requires ~/.codex/auth.json before building the live Docker image",
     );
     expect(script).toContain(
-      "If this is a Testbox/API-key run, set OPENCLAW_LIVE_CODEX_HARNESS_AUTH=api-key and run through openclaw-testbox-env.",
+      "For API-key proof, set OPENCLAW_LIVE_CODEX_HARNESS_AUTH=api-key before running this direct Docker lane.",
     );
     expect(script.indexOf("requires ~/.codex/auth.json before building")).toBeLessThan(
       script.indexOf('OPENCLAW_LIVE_DOCKER_REPO_ROOT="$ROOT_DIR"'),

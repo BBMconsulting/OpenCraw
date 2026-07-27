@@ -83,11 +83,7 @@ export function shouldInstallPlaywrightSystemDependencies(options = {}) {
   if (typeof getuid === "function" && getuid() === 0) {
     return true;
   }
-  return (
-    isTruthyEnvFlag(env.CI) ||
-    isTruthyEnvFlag(env.GITHUB_ACTIONS) ||
-    isTruthyEnvFlag(env.OPENCLAW_TESTBOX)
-  );
+  return isTruthyEnvFlag(env.CI) || isTruthyEnvFlag(env.GITHUB_ACTIONS);
 }
 
 function resolveLinuxPrivilegePrefix(options = {}) {
