@@ -19,7 +19,8 @@ const testInventoryPath = "config/validation/test-suite-inventory.json";
 const skipLedgerPath = "config/validation/test-skip-ledger.json";
 const lintExtension = /\.[cm]?[jt]sx?$/u;
 const scriptTest = /(?:^|\/)[^/]+\.(?:test|spec)\.[cm]?[jt]sx?$/u;
-const skipDeclaration = /\b(?:describe|suite|test|it)\s*\.\s*(?:skip|todo|skipIf|runIf|fails)\b/u;
+const skipDeclaration =
+  /\b(?:(?:xdescribe|xsuite|xtest|xit)\s*\(|(?:describe|suite|test|it)(?:\s*\.\s*(?:concurrent|sequential|each)(?:\s*\([^)]*\))?)*\s*\.\s*(?:skip|todo|skipIf|runIf|fails)\b)/u;
 
 function readJson(file) {
   return JSON.parse(readFileSync(path.join(root, file), "utf8"));

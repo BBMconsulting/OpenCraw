@@ -57,6 +57,22 @@ describe("OpenCraw validation manifests", () => {
     expect(new Set(inventory.configuredIgnoredFiles.map((entry) => entry.source))).toEqual(
       new Set([".oxlintrc.json"]),
     );
+    const skipLedger = JSON.parse(
+      readFileSync("config/validation/test-skip-ledger.json", "utf8"),
+    ) as {
+      declarations: Array<{ declaration: string; file: string; line: number }>;
+    };
+    const chainedSkipDeclaration = [
+      "test.sequential.",
+      'skip("skipped sequential test", () => {});',
+    ].join("");
+    expect(skipLedger.declarations).toContainEqual(
+      expect.objectContaining({
+        declaration: chainedSkipDeclaration,
+        file: "test/scripts/test-skip-inventory.test.ts",
+        line: 45,
+      }),
+    );
   });
 
   it("detects synthetic missing and duplicated assignments", () => {

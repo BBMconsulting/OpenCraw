@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "declarationCount": 810,
+  "declarationCount": 811,
   "quarantinedCount": 0,
   "declarations": [
     {
@@ -6397,6 +6397,15 @@
       "file": "test/scripts/test-skip-inventory.test.ts",
       "line": 43,
       "declaration": "const runIfPowerShell = powershell ? it : it.skip;",
+      "category": "project-diagnostic",
+      "reason": "Owned by an inherited project configuration outside the compact supported lane.",
+      "condition": "Run through pnpm test or the owning Vitest/native project during a broad diagnostic investigation.",
+      "tracking": "docs/development/opencraw-validation.md#test-suite-classification"
+    },
+    {
+      "file": "test/scripts/test-skip-inventory.test.ts",
+      "line": 45,
+      "declaration": "test.sequential.skip(\"skipped sequential test\", () => {});",
       "category": "project-diagnostic",
       "reason": "Owned by an inherited project configuration outside the compact supported lane.",
       "condition": "Run through pnpm test or the owning Vitest/native project during a broad diagnostic investigation.",

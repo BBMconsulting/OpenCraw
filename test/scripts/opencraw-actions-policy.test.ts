@@ -13,6 +13,13 @@ describe("OpenCraw GitHub Actions policy", () => {
     expect(workflowFiles()).toEqual(["docs.yml", "opencraw-ci.yml"]);
   });
 
+  it("binds exact-head dispatches to the verifier title contract", () => {
+    const source = readFileSync(`${workflowDirectory}/opencraw-ci.yml`, "utf8");
+    expect(source).toContain(
+      "run-name: OpenCraw CI retained gate ${{ inputs.target_sha || github.sha }}",
+    );
+  });
+
   it("uses no schedule or unapproved runner", () => {
     for (const file of workflowFiles()) {
       const source = readFileSync(`${workflowDirectory}/${file}`, "utf8");

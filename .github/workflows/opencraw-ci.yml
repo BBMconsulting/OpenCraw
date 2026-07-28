@@ -1,5 +1,5 @@
 name: OpenCraw CI
-run-name: OpenCraw CI @ ${{ inputs.target_sha || github.sha }}
+run-name: OpenCraw CI retained gate ${{ inputs.target_sha || github.sha }}
 
 on:
   workflow_dispatch:

@@ -110,7 +110,7 @@ upstream compatibility, platform-specific, live-provider, release/publication,
 expensive/manual, quarantine, and inherited project diagnostic. Each
 non-normal entry records its condition, reason, and this tracking reference.
 The current inventory contains 9,125 tracked test files. The skip ledger
-contains 810 non-normal declarations and no quarantine. It is the complete
+contains 811 non-normal declarations and no quarantine. It is the complete
 line-addressed ledger; no separate hand-maintained copy is authoritative.
 
 | Classification         | Files |
