@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "candidateFileCount": 22657,
-  "eligibleFileCount": 22653,
+  "candidateFileCount": 22658,
+  "eligibleFileCount": 22654,
   "configuredIgnoredFileCount": 4,
   "coverage": {
-    "assignedExactlyOnce": 22653,
+    "assignedExactlyOnce": 22654,
     "duplicateAssignments": 0,
     "unassigned": 0
   },
@@ -111,7 +111,7 @@
     },
     {
       "id": "scripts",
-      "fileCount": 851
+      "fileCount": 852
     },
     {
       "id": "tests-tooling",
@@ -35059,6 +35059,10 @@
     },
     {
       "path": "scripts/lib/openclaw-test-state.mjs",
+      "shard": "scripts"
+    },
+    {
+      "path": "scripts/lib/opencraw-lint-report.d.mts",
       "shard": "scripts"
     },
     {

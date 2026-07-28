@@ -61,13 +61,13 @@ graph while preserving type-aware analysis of imported dependencies.
 | extensions-model-providers          | 1,015 |
 | extensions-qa-platform              | 1,013 |
 | extensions-rest                     | 1,522 |
-| scripts                             |   851 |
+| scripts                             |   852 |
 | tests-tooling                       |   412 |
 | tests-runtime                       |   337 |
 
-The generated coverage proof starts from 22,657 tracked source candidates.
-It records four files excluded by `.oxlintrc.json`, leaving 22,653 lint-eligible
-files with 22,653 exact assignments, zero missing assignments, and zero
+The generated coverage proof starts from 22,658 tracked source candidates.
+It records four files excluded by `.oxlintrc.json`, leaving 22,654 lint-eligible
+files with 22,654 exact assignments, zero missing assignments, and zero
 duplicate assignments. Configured exclusions are kept in the generated
 inventory so changes to the lint configuration make the inventory stale.
 
