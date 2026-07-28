@@ -7,6 +7,13 @@ title: "Onboarding redesign"
 
 # Onboarding redesign implementation plan
 
+<Note>
+  **OpenCraw status.** This inherited upstream planning record remains useful
+  for compatibility work, but references to removed upstream workflows and
+  landing procedures are inactive in OpenCraw. Current validation is defined by
+  the OpenCraw validation record.
+</Note>
+
 > **Living document.** This page tracks the custodian onboarding redesign at
 > implementation level and is updated as each phase lands. When the last phase
 > merges, this page is rewritten as the user-facing onboarding guide and joins
@@ -287,18 +294,10 @@ restart` from the real environment and verify the plist. Product follow-up:
   32 output tokens; custom prompts bypass the cap and are bounded by the
   model's own `maxTokens`. Reasoning models consume that budget with hidden
   reasoning first — an empty-text turn usually means the budget died there.
-- **Agent landing needs exact-head hosted CI.** The heavy `CI` workflow may
-  not queue on pushes under org load; the maintainer fallback is a
-  release-gate dispatch on the PR branch:
-
-  ```bash
-  gh workflow run ci.yml --ref <branch> -f target_ref=<head-sha> -f release_gate=true -f pull_request_number=<pr>
-  ```
-
-  The run must be on the
-  branch ref so `head_sha` matches, and the title becomes
-  `CI release gate <sha>`, which `scripts/verify-pr-hosted-gates.mjs`
-  accepts. Then `scripts/pr` prepare/merge as usual.
+- **OpenCraw validation.** The inherited exact-head hosted-CI landing procedure
+  is inactive in this fork. Use `pnpm validation:manifests`, `pnpm lint:full`,
+  `pnpm tsgo:all`, and `pnpm test:opencraw` for direct validation; the retained
+  OpenCraw CI workflow provides the approved remote result.
 
 - **Gates that CI enforces beyond focused tests**: docs map
   (`pnpm docs:map:gen` after adding any docs page), oxlint (`no-map-spread`,

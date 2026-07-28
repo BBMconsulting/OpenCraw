@@ -4,6 +4,24 @@ This record captures reusable source-integration decisions for the OpenCraw
 fork. Instance-specific paths, credentials, service state, backups, and
 validation session identifiers remain in the private instance log.
 
+## 2026-07-27 direct validation and identity correction
+
+OpenCraw now records its role as the heart, Gateway/Assistant, and primary
+control plane of BBM's Linux-native Ai Server appliance, with CrawDevAi as the
+deployment, update, validation, recovery, replication, and standardization
+framework. Crawbie Pincherton (CrawCraw) is the mascot for all BBM Ai
+development, and `TheRealCrawCraw` is the single BBM machine identity.
+Separately owned deployments retain isolated identities.
+
+Full type-aware lint now uses a complete generated inventory and serialized
+ownership shards. Tests have a generated classification and skip ledger with a
+clean supported command. The TUI startup test no longer waits on a 120-second
+model-runtime activation for optional label metadata. External validation
+workers and unretained workflows are disabled or removed; only direct
+repository validation and the retained Docs/OpenCraw CI workflows remain.
+Implementation details and measurements are in
+[OpenCraw validation infrastructure](/development/opencraw-validation).
+
 ## 2026-07-27 Craw palette and retained-workflow correction
 
 The visible default color-scheme identity is now `Craw`; `Claw` is no longer a

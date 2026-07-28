@@ -13,6 +13,20 @@ This record defines the deliberately narrow branding layer maintained by the
 OpenCraw fork. It makes OpenCraw the default visible product identity without
 renaming upstream compatibility contracts or obscuring OpenClaw attribution.
 
+## BBM appliance and identity boundary
+
+OpenCraw is the heart, Gateway/Assistant, and primary control plane of BBM's
+Linux-native Ai Server appliance. CrawDevAi is the framework that deploys,
+updates, validates, recovers, replicates, and standardizes that
+OpenCraw-centered appliance. The appliance carries out BBM and client business
+tasks, including software development.
+
+Crawbie Pincherton, also known as CrawCraw, is the Ai crawfish mascot for all
+BBM Ai development efforts and projects. `TheRealCrawCraw` is Crawbie's sole
+BBM machine identity for BBM-managed and BBM-developed Ai projects. It is never
+shared with client, customer, third-party, replicated, or separately owned
+deployments; those deployments use isolated identities and credentials.
+
 ## Pre-implementation inventory
 
 The inventory was fixed before application edits on 2026-07-26. The starting

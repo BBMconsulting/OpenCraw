@@ -7,6 +7,12 @@ read_when:
 title: "Release performance sweep"
 ---
 
+<Warning>
+  Historical upstream evidence only. The named release workflow is not retained
+  in OpenCraw and this page does not authorize rerunning it or publishing its
+  artifacts.
+</Warning>
+
 This page captures the evidence behind the May 2026 OpenClaw performance,
 package-size, dependency, and shrinkwrap cleanup. It is the technical companion
 to the public blog post.

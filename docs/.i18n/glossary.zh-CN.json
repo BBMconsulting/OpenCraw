@@ -708,6 +708,10 @@
     "target": "发布说明"
   },
   {
+    "source": "Release status",
+    "target": "发布状态"
+  },
+  {
     "source": "for full details",
     "target": "了解详情"
   },
@@ -1638,5 +1642,21 @@
   {
     "source": "Session integrity recovery and validation isolation",
     "target": "会话完整性恢复与验证隔离"
+  },
+  {
+    "source": "OpenCraw continuous integration",
+    "target": "OpenCraw 持续集成"
+  },
+  {
+    "source": "OpenCraw tests",
+    "target": "OpenCraw 测试"
+  },
+  {
+    "source": "OpenCraw validation infrastructure",
+    "target": "OpenCraw 验证基础设施"
+  },
+  {
+    "source": "OpenCraw GitHub Actions policy",
+    "target": "OpenCraw GitHub Actions 策略"
   }
 ]

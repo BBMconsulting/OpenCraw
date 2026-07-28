@@ -213,6 +213,11 @@ go through normal pairing and scope-upgrade checks.
 
 ### Worker role and closed protocol
 
+OpenCraw retains this closed protocol for upstream compatibility, but this fork
+ships no worker provider. The stock distribution cannot create an external
+worker, and these RPC names are not an approved validation or delegation path.
+See [Cloud workers](/gateway/cloud-workers).
+
 Cloud workers use a dedicated loopback ingress through the gateway-owned,
 host-key-pinned SSH tunnel. It accepts only worker identity and never dispatches
 general auth, node events, operator RPCs, or plugin methods. A strict `connect`

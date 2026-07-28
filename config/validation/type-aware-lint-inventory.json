@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "eligibleFileCount": 22658,
+  "eligibleFileCount": 22656,
   "coverage": {
-    "assignedExactlyOnce": 22658,
+    "assignedExactlyOnce": 22656,
     "duplicateAssignments": 0,
     "unassigned": 0
   },
@@ -101,7 +101,7 @@
     },
     {
       "id": "extensions-qa-platform",
-      "fileCount": 1016
+      "fileCount": 1014
     },
     {
       "id": "extensions-rest",
@@ -20411,14 +20411,6 @@
     },
     {
       "path": "extensions/qa-lab/src/shell-quote.ts",
-      "shard": "extensions-qa-platform"
-    },
-    {
-      "path": "extensions/qa-lab/src/static-ssh-worker-provider.test.ts",
-      "shard": "extensions-qa-platform"
-    },
-    {
-      "path": "extensions/qa-lab/src/static-ssh-worker-provider.ts",
       "shard": "extensions-qa-platform"
     },
     {

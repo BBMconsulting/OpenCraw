@@ -765,104 +765,20 @@ See [Multiple Gateways](/gateway/multiple-gateways).
 
 ## Cloud worker environments
 
-Cloud workers are opt-in. If `cloudWorkers` is absent, or `profiles` is empty, OpenClaw accepts no new worker creation. Durable records created earlier still reconcile and remain visible; the existing gateway/node projection is unchanged.
-
-Every worker provider must return an SSH `hostKey` from trusted provisioning output as exactly `algorithm base64`, without a hostname or comment. Bootstrap writes that key to an isolated `known_hosts` file, uses `StrictHostKeyChecking=yes`, and fails before opening a connection when the provider omits it. There is no trust-on-first-use fallback.
-
-Tunnel setup is on demand rather than part of provisioning. When started, the gateway reverse-forwards a worker-local Unix socket to its loopback WebSocket endpoint. The socket lives in a randomly allocated, owner-only remote directory; unlike a loopback TCP port, it is not reachable by other accounts on a multi-user worker and cannot collide with another environment's port. SSH keepalives and capped reconnect backoff run only while the tunnel owner remains current. Stopping the tunnel fences reconnects before closing the SSH process.
-
-Control traffic and workspace transfer use separate SSH connections. Both reuse the same resolved identity and isolated pinned `known_hosts` file, but workspace transfer does not share SSH connection multiplexing with the long-lived tunnel, so rsync cannot block control traffic.
-
-### Crabbox profile
-
-The bundled `crabbox` provider provisions an SSH-capable lease through the local Crabbox CLI. The inner `settings.provider` selects the Crabbox backend; it is separate from the outer OpenClaw provider id.
-
-```json5
-{
-  cloudWorkers: {
-    profiles: {
-      production: {
-        provider: "crabbox",
-        install: "bundle", // Default; use "npm" only for a released gateway version.
-        settings: {
-          provider: "aws",
-          class: "standard",
-          ttl: "24h",
-          idleTimeout: "60m",
-          // Optional absolute path. Default: sibling ../crabbox/bin/crabbox, then PATH.
-          binary: "/usr/local/bin/crabbox",
-        },
-        lifetime: {
-          idleTimeoutMinutes: 60,
-          maxLifetimeMinutes: 1440,
-        },
-      },
-    },
-  },
-}
-```
-
-- `settings.provider` (required): Crabbox backend passed through `--provider`. Use a backend whose inspect output includes an SSH endpoint; `aws` selects the direct AWS backend.
-- `settings.class` (required): Crabbox machine class passed to `--class`.
-- `settings.ttl` and `settings.idleTimeout` (required): positive Go duration strings passed to `--ttl` and `--idle-timeout`. These provider-side failsafes are distinct from OpenClaw's stored `lifetime` policy below.
-- `settings.binary`: optional absolute Crabbox executable path. Without it, OpenClaw checks the sibling Crabbox checkout, then executable entries on `PATH`, and finally invokes `crabbox` so a missing CLI remains a visible provider error.
-
-Unknown settings are rejected. Crabbox credentials and backend-specific account configuration remain owned by Crabbox; do not place them in `settings`. OpenClaw invokes only the local CLI and makes no provider network calls from this plugin. Provisioning always passes `--keep=true`; OpenClaw owns the external lifecycle and destroys the lease with `crabbox stop`.
-
-<Note>
-  OpenClaw resolves Crabbox's lease-local `sshKey` path through the provider-owned secret resolver and pins the authoritative `sshHostKey` returned by `crabbox inspect --json`. AWS admission also requires `providerMetadata.instanceProfileAttached`. Install Crabbox 0.38.1 or newer for this closed inspection contract.
-</Note>
-
-### Static SSH development profile
-
-```json5
-{
-  cloudWorkers: {
-    profiles: {
-      development: {
-        provider: "static-ssh",
-        settings: {
-          host: "worker.example.test",
-          port: 22,
-          user: "openclaw",
-          hostKey: "ssh-ed25519 <base64-public-host-key>",
-          keyRef: {
-            source: "env",
-            provider: "default",
-            id: "OPENCLAW_WORKER_SSH_KEY",
-          },
-        },
-        lifetime: {
-          idleTimeoutMinutes: 60,
-          maxLifetimeMinutes: 1440,
-        },
-      },
-    },
-  },
-}
-```
-
-- `profiles`: named worker profiles with non-empty, whitespace-trimmed ids. Each profile selects a provider registered by a plugin.
-- `provider`: non-empty worker provider id. The examples use the bundled `crabbox` provider and the QA Lab `static-ssh` provider.
-- `install`: worker installation method. `"bundle"` (default) transfers a content-hashed bundle of the gateway's installed build and supports released, development, and unreleased versions. `"npm"` is an opt-in optimization for an unmodified packaged release; it installs `openclaw@<exact gateway version>` from the public npm registry and never installs `latest`.
-- Bundled provider plugins are selected automatically when configured, but explicit disables and `plugins.allow` still apply. Include the provider id (for example, `crabbox`) when an allowlist is configured. External provider plugins must also be installed and explicitly enabled.
-- `settings`: provider-owned bounded JSON. The selected plugin defines and validates its keys; use [SecretRef objects](/gateway/secrets) for secret-bearing values. The static SSH provider requires `host`, `user`, `hostKey`, and `keyRef`; `port` defaults to `22`. `hostKey` must be one OpenSSH public host-key line (`algorithm base64`) obtained from the known host or another trusted channel, with no options prefix.
-- `lifetime.idleTimeoutMinutes`: positive integer minutes stored for later idle-reclamation policy.
-- `lifetime.maxLifetimeMinutes`: positive integer minutes stored for later lifecycle policy.
-
-A supported Node runtime (22.22.3+, 24.15+, or 25.9+) with WAL-reset-safe SQLite must already be installed on the worker. The opt-in `"npm"` method also requires `npm` and outbound HTTPS access to the public npm registry. Networked toolchain setup is provider policy; bootstrap reports an actionable error instead of installing toolchains itself.
-
-This foundation installs and verifies the gateway build and provides tunnel start/stop lifecycle, but it does not launch the general OpenClaw CLI. The self-contained worker entry and loop land in the next cloud-worker milestone.
-
-Each durable environment record retains its validated provider settings, resolved install method, and lifetime policy in a creation-time profile snapshot. Changing or removing a named profile affects new creates; existing records continue lifecycle reconciliation with that snapshot, provided the owning plugin remains available.
-
-Lifetime values are data only in the first cloud-worker release; automatic enforcement lands with later lifecycle work. Profile changes require a gateway restart.
+OpenCraw retains the inherited cloud-worker configuration schema for upstream
+protocol compatibility, but this fork ships no cloud-worker provider. The
+inherited bundled lease provider and QA static-SSH provider have been removed.
+A stock OpenCraw installation therefore cannot provision or connect to an
+external worker.
 
 <Warning>
-  The `static-ssh` provider is a source-tree QA Lab development harness and is excluded from packaged distributions. A worker running on its shared host can read unrelated host data, so do not use this provider as a production isolation boundary.
-  Its operator must supply the expected `hostKey`; OpenClaw will not learn or accept a key from the first connection.
-  Destroying its lease only releases OpenClaw's logical record; it does not stop or clean the host.
+  Do not configure a third-party worker provider as a validation path. OpenCraw
+  validation runs directly in its assigned BBM-controlled environment or in the
+  retained BBM-controlled GitHub Actions workflows. Missing local requirements
+  fail locally and never select an external worker.
 </Warning>
+
+See [Cloud workers](/gateway/cloud-workers) for the fork compatibility boundary.
 
 ---
 

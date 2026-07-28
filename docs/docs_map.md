@@ -1170,44 +1170,9 @@ Do not edit it by hand; run `pnpm docs:map:gen`.
 
 - Route: /ci
 - Headings:
-  - H2: Pipeline overview
-  - H2: Fail-fast order
-  - H2: PR context and evidence
-  - H2: Scope and routing
-  - H2: ClawSweeper activity forwarding
-  - H2: Manual dispatches
-  - H2: Runners
-  - H2: Runner registration budget
-  - H2: Surface ratchets
-  - H2: Local equivalents
-  - H2: OpenClaw Performance
-  - H2: Full Release Validation
-  - H2: Live and E2E shards
-  - H2: Package Acceptance
-  - H3: Jobs
-  - H3: Candidate sources
-  - H3: Suite profiles
-  - H3: Legacy compatibility windows
-  - H3: Examples
-  - H2: Install smoke
-  - H2: Local Docker E2E
-  - H3: Tunables
-  - H3: Reusable live/E2E workflow
-  - H3: Release-path chunks
-  - H2: Plugin Prerelease
-  - H2: QA Lab
-  - H2: CodeQL
-  - H3: Security categories
-  - H3: Platform-specific security shards
-  - H3: Critical Quality categories
-  - H2: Maintenance workflows
-  - H3: Docs Agent
-  - H3: Test Performance Agent
-  - H3: Duplicate PRs After Merge
-  - H2: Local check gates and changed routing
-  - H3: Config baseline count ratchet
-  - H2: Testbox validation
-  - H2: Related
+  - H1: OpenCraw continuous integration
+  - H2: Local gates
+  - H2: Retained workflows
 
 ## clawhub/cli.md
 
@@ -2528,32 +2493,13 @@ Do not edit it by hand; run `pnpm docs:map:gen`.
 
 - Route: /concepts/mantis-slack-desktop-runbook
 - Headings:
-  - H2: Storage model
-  - H2: GitHub dispatch
-  - H2: Local CLI
-  - H2: Hydrate modes
-  - H2: Timing interpretation
-  - H2: Evidence checklist
-  - H2: Failure handling
-  - H2: Related
+  - H1: Mantis Slack desktop runbook
 
 ## concepts/mantis.md
 
 - Route: /concepts/mantis
 - Headings:
-  - H2: Ownership
-  - H2: CLI commands
-  - H3: discord-smoke
-  - H3: run
-  - H3: desktop-browser-smoke
-  - H3: slack-desktop-smoke
-  - H3: telegram-desktop-builder
-  - H2: Evidence manifest
-  - H2: GitHub automation
-  - H2: Machines and secrets
-  - H2: Run outcomes
-  - H2: Adding a scenario
-  - H2: Open questions
+  - H1: Mantis
 
 ## concepts/markdown-formatting.md
 
@@ -2869,30 +2815,7 @@ Do not edit it by hand; run `pnpm docs:map:gen`.
 
 - Route: /concepts/qa-e2e-automation
 - Headings:
-  - H2: Command surface
-  - H3: Profile-backed qa run
-  - H2: Operator flow
-  - H3: Observability smokes
-  - H3: Matrix smoke lanes
-  - H3: Discord Mantis scenarios
-  - H3: Mantis Slack desktop and visual-task runners
-  - H3: Credential pool health check
-  - H2: Canonical scenario coverage
-  - H2: Discord, Slack, Telegram, and WhatsApp QA reference
-  - H3: Shared CLI flags
-  - H3: Telegram QA
-  - H3: Discord QA
-  - H3: Slack QA
-  - H4: Setting up the Slack workspace
-  - H3: WhatsApp QA
-  - H3: Convex credential pool
-  - H2: Repo-backed seeds
-  - H2: Provider mock lanes
-  - H2: Transport adapters
-  - H3: Adding a channel
-  - H3: Scenario helper names
-  - H2: Reporting
-  - H2: Related docs
+  - H1: QA overview
 
 ## concepts/queue-steering.md
 
@@ -3135,6 +3058,17 @@ Do not edit it by hand; run `pnpm docs:map:gen`.
   - H2: References
   - H2: Related
 
+## development/opencraw-validation.md
+
+- Route: /development/opencraw-validation
+- Headings:
+  - H1: OpenCraw validation infrastructure
+  - H2: Full type-aware lint
+  - H2: Test-root lint policy
+  - H2: Test-suite classification
+  - H2: TUI timeout correction
+  - H2: Runner policy
+
 ## diagnostics/flags.md
 
 - Route: /diagnostics/flags
@@ -3286,15 +3220,9 @@ Do not edit it by hand; run `pnpm docs:map:gen`.
 
 - Route: /gateway/cloud-workers
 - Headings:
-  - H2: What runs where
-  - H2: Requirements
-  - H2: Configuration
-  - H3: The setup command
-  - H3: Install channels
-  - H2: Dispatching a session
-  - H2: Security model
-  - H2: Troubleshooting
-  - H2: Related
+  - H1: Cloud workers
+  - H2: OpenCraw fork status
+  - H2: Compatibility boundary
 
 ## gateway/config-agents.md
 
@@ -3440,8 +3368,6 @@ Do not edit it by hand; run `pnpm docs:map:gen`.
   - H3: gateway.tls
   - H3: gateway.reload
   - H2: Cloud worker environments
-  - H3: Crabbox profile
-  - H3: Static SSH development profile
   - H2: Hooks
   - H3: Gmail integration
   - H2: Canvas plugin host
@@ -4315,46 +4241,13 @@ Do not edit it by hand; run `pnpm docs:map:gen`.
 
 - Route: /help/testing-updates-plugins
 - Headings:
-  - H2: What we protect
-  - H2: Local proof during development
-  - H2: Docker lanes
-  - H2: Package Acceptance
-  - H2: Release default
-  - H2: Legacy compatibility
-  - H2: Adding coverage
-  - H2: Failure triage
+  - H1: Testing updates and plugins
 
 ## help/testing.md
 
 - Route: /help/testing
 - Headings:
-  - H2: Quick start
-  - H2: Test Temp Directories
-  - H2: Live and Docker/Parallels workflows
-  - H2: QA-specific runners
-  - H3: Shared Telegram credentials via Convex (v1)
-  - H3: Adding a channel to QA
-  - H2: Test suites (what runs where)
-  - H3: Unit / integration (default)
-  - H3: Stability (gateway)
-  - H3: E2E (repo aggregate)
-  - H3: E2E (gateway smoke)
-  - H3: E2E (Control UI mocked browser)
-  - H3: E2E: OpenShell backend smoke
-  - H3: Live (real providers + real models)
-  - H2: Which suite should I run?
-  - H2: Live (network-touching) tests
-  - H2: Docker runners (optional "works in Linux" checks)
-  - H2: Docs sanity
-  - H2: Offline regression (CI-safe)
-  - H2: Agent reliability evals (skills)
-  - H2: Contract tests (plugin and channel shape)
-  - H3: Commands
-  - H3: Channel contracts
-  - H3: Provider contracts
-  - H3: When to run
-  - H2: Adding regressions (guidance)
-  - H2: Related
+  - H1: Testing
 
 ## help/troubleshooting.md
 
@@ -5863,7 +5756,6 @@ Do not edit it by hand; run `pnpm docs:map:gen`.
   - H3: WhatsApp inbound callback flat aliases
   - H3: WhatsApp inbound admission fields
   - H2: Plugin inspector package
-  - H3: Maintainer acceptance lane
   - H2: Release notes
 
 ## plugins/copilot.md
@@ -6398,15 +6290,6 @@ Do not edit it by hand; run `pnpm docs:map:gen`.
   - H2: Distribution
   - H2: Surface
   - H2: Related docs
-
-## plugins/reference/crabbox.md
-
-- Route: /plugins/reference/crabbox
-- Headings:
-  - H1: Crabbox plugin
-  - H2: Distribution
-  - H2: Surface
-  - H2: Configure
 
 ## plugins/reference/cua-computer.md
 
@@ -8750,22 +8633,7 @@ Do not edit it by hand; run `pnpm docs:map:gen`.
 
 - Route: /reference/RELEASING
 - Headings:
-  - H2: Version naming
-  - H2: Release cadence
-  - H2: Monthly npm-only extended-stable publication
-  - H2: Regular release operator checklist
-  - H2: Stable main closeout
-  - H2: Release preflight
-  - H2: Release test boxes
-  - H3: Vitest
-  - H3: Docker
-  - H3: QA Lab
-  - H3: Package
-  - H2: Regular release publish automation
-  - H2: NPM workflow inputs
-  - H2: Regular beta/latest stable release sequence
-  - H2: Public references
-  - H2: Related
+  - H1: OpenCraw release status
 
 ## reference/api-usage-costs.md
 
@@ -8824,33 +8692,13 @@ Do not edit it by hand; run `pnpm docs:map:gen`.
 
 - Route: /reference/full-release-validation
 - Headings:
-  - H2: Top-level stages
-  - H2: Release checks stages
-  - H2: Docker release-path chunks
-  - H2: Release profiles
-  - H2: Full-only additions
-  - H2: Focused reruns
-  - H2: Evidence to keep
-  - H2: Workflow files
+  - H1: Full release validation
 
 ## reference/github-actions-policy.md
 
 - Route: /reference/github-actions-policy
 - Headings:
   - H1: OpenCraw GitHub Actions policy
-  - H2: Operating rules
-  - H3: Automatic core validation
-  - H3: Manual and release-only automation
-  - H3: Schedules, repository events, and reusable workflows
-  - H3: Secrets, permissions, cost, and notification noise
-  - H2: Complete workflow reconciliation matrix
-  - H3: A. Automatic core validation
-  - H3: B. Manual or release-only
-  - H3: C. Reusable `workflow_call` components
-  - H3: D. Removed from the active workflow set
-  - H2: Removed schedules
-  - H2: Failure diagnosis that established this policy
-  - H2: Validation and upstream reconciliation
 
 ## reference/memory-config.md
 
@@ -8892,6 +8740,7 @@ Do not edit it by hand; run `pnpm docs:map:gen`.
 - Route: /reference/opencraw-branding-boundary
 - Headings:
   - H1: OpenCraw visible-branding boundary
+  - H2: BBM appliance and identity boundary
   - H2: Pre-implementation inventory
   - H3: Visible surfaces in scope
   - H3: Imagery to replace
@@ -8907,6 +8756,7 @@ Do not edit it by hand; run `pnpm docs:map:gen`.
 - Route: /reference/opencraw-fork-reconciliation
 - Headings:
   - H1: OpenCraw Fork Reconciliation Record
+  - H2: 2026-07-27 direct validation and identity correction
   - H2: 2026-07-27 Craw palette and retained-workflow correction
   - H2: 2026-07-26 visible-branding boundary
   - H2: 2026-07-23 GitHub Actions policy reconciliation
@@ -9188,20 +9038,7 @@ Do not edit it by hand; run `pnpm docs:map:gen`.
 
 - Route: /reference/test
 - Headings:
-  - H2: Agent default
-  - H2: Routine local order
-  - H2: Core commands
-  - H2: Shared test state and process helpers
-  - H2: Control UI, TUI, and extension lanes
-  - H2: Gateway and E2E
-  - H2: Full Docker suite (pnpm test:docker:all)
-  - H3: Notable Docker lanes
-  - H2: Local PR gate
-  - H2: Test performance tooling
-  - H2: Benchmarks
-  - H2: Onboarding E2E (Docker)
-  - H2: QR import smoke (Docker)
-  - H2: Related
+  - H1: OpenCraw tests
 
 ## reference/token-use.md
 

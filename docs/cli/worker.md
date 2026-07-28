@@ -8,6 +8,13 @@ title: "Worker"
 
 # `openclaw worker`
 
+<Warning>
+  OpenCraw retains this restricted runtime only as an upstream compatibility
+  surface. This fork ships no cloud-worker provider, so the stock distribution
+  cannot provision or connect to an external worker. It is not an OpenCraw
+  validation path.
+</Warning>
+
 `openclaw worker` is the restricted runtime entry point for a cloud worker
 orchestrator to launch inside a prepared worker environment. It is not a
 general-purpose command for manual worker registration.

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "trackedTestFileCount": 9126,
+  "trackedTestFileCount": 9125,
   "categories": {
     "normal-supported": 1186,
     "integration-local": 288,
@@ -10,7 +10,7 @@
     "release-publication": 79,
     "expensive-manual": 1,
     "quarantined": 0,
-    "project-diagnostic": 6920
+    "project-diagnostic": 6919
   },
   "files": [
     {
@@ -18327,14 +18327,6 @@
     },
     {
       "path": "extensions/qa-lab/src/self-check.test.ts",
-      "category": "project-diagnostic",
-      "rule": "remaining-project-tests",
-      "condition": "Run through pnpm test or the owning Vitest/native project during a broad diagnostic investigation.",
-      "reason": "Owned by an inherited project configuration outside the compact supported lane.",
-      "tracking": "docs/development/opencraw-validation.md#test-suite-classification"
-    },
-    {
-      "path": "extensions/qa-lab/src/static-ssh-worker-provider.test.ts",
       "category": "project-diagnostic",
       "rule": "remaining-project-tests",
       "condition": "Run through pnpm test or the owning Vitest/native project during a broad diagnostic investigation.",

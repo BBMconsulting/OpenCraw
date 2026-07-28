@@ -366,6 +366,3 @@ Independent worktrees, Codex-built, review+land sequentially. Land-then-fix.
 | T5  | `claude/dashboard-capabilities`      | Grant store/UI + byte freezing; move `html` widgets onto the shared sandbox host; host tools (`openclaw.prompt.send/state.emit/data.read/cron.trigger`); `net` CSP; authoring shim | T3, T4                           |
 | T7  | `claude/dashboard-mcp-apps`          | `mcp-app` content kind: pin affordance on inline app views, descriptor storage, lease re-mint/refresh, durable server-tool grants (reuses shipped MCP Apps host)                   | T3, T4                           |
 | T6  | polish                               | Live E2E on a scratch gateway (real keys), screenshots, fixes, user-focused `/web/dashboard` rewrite, enable-by-default review                                                     | all                              |
-
-Validation per repo rules: focused vitest locally, full gates on
-Crabbox/Testbox, `$autoreview` before every land, live proof for T6.

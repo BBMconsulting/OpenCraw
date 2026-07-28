@@ -9,7 +9,11 @@ read_when:
 
 ## Status
 
-Proposal, revision 3. Not implemented. Direction agreed 2026-07; revision 2 incorporated adversarial review findings (dedicated worker protocol, placement/environment state machines, git-aware inbound sync, one-way v1 handoff, controlled-egress security wording). Revision 3 settles the sync ownership model (worker authors commits, gateway adopts and publishes), adds a no-git plain sync mode, fixes worker exec at full-within-box, moves internet policy to provision time, and restores agent dispatch to milestone 3.
+Historical upstream design record, inactive in OpenCraw. This fork ships no
+cloud-worker provider, and this proposal does not authorize installation,
+provisioning, delegation, or validation on an external worker. Protocol and
+configuration compatibility surfaces may remain for future U/D-directed
+reconciliation. Revision 3 recorded the prior upstream direction in 2026-07.
 
 ## Problem
 
