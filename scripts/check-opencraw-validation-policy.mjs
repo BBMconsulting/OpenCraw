@@ -75,12 +75,15 @@ const directPaths = [
 ];
 
 for (const relative of prohibitedPaths) {
-  if (existsSync(path.join(root, relative)))
+  if (existsSync(path.join(root, relative))) {
     errors.push(`${relative}: prohibited active path exists`);
+  }
 }
 for (const relative of directPaths) {
   const text = readFileSync(path.join(root, relative), "utf8");
-  if (forbidden.test(text)) errors.push(`${relative}: contains an external-delegation selector`);
+  if (forbidden.test(text)) {
+    errors.push(`${relative}: contains an external-delegation selector`);
+  }
 }
 
 const workflowDir = path.join(root, ".github/workflows");
@@ -103,8 +106,9 @@ for (const file of workflows) {
   }
   const runnerLines = text.match(/^\s*runs-on:\s*.+$/gmu) ?? [];
   for (const line of runnerLines) {
-    if (line.trim() !== "runs-on: ubuntu-24.04")
+    if (line.trim() !== "runs-on: ubuntu-24.04") {
       errors.push(`.github/workflows/${file}: unapproved runner ${line.trim()}`);
+    }
   }
 }
 
@@ -129,7 +133,9 @@ if (
 }
 
 if (errors.length > 0) {
-  for (const error of errors) console.error(`[validation-policy] ${error}`);
+  for (const error of errors) {
+    console.error(`[validation-policy] ${error}`);
+  }
   process.exitCode = 1;
 } else {
   console.log(

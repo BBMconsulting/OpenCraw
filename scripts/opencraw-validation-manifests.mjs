@@ -52,7 +52,9 @@ function writeOrCheck(file, value, errors) {
     errors.push(`${file}: missing; run pnpm validation:manifests:update`);
     return;
   }
-  if (current !== rendered) errors.push(`${file}: stale; run pnpm validation:manifests:update`);
+  if (current !== rendered) {
+    errors.push(`${file}: stale; run pnpm validation:manifests:update`);
+  }
 }
 
 function buildLintInventory(files, errors) {
@@ -78,8 +80,11 @@ function buildLintInventory(files, errors) {
     counts.set(owners[0].id, (counts.get(owners[0].id) ?? 0) + 1);
     return { path: file, shard: owners[0].id };
   });
-  for (const [shard, count] of counts)
-    if (count === 0) errors.push(`${lintManifestPath}: shard ${shard} has no eligible files`);
+  for (const [shard, count] of counts) {
+    if (count === 0) {
+      errors.push(`${lintManifestPath}: shard ${shard} has no eligible files`);
+    }
+  }
   const unassigned = inventory.filter((entry) => entry.shard === "UNASSIGNED").length;
   return {
     schemaVersion: 1,
@@ -98,9 +103,15 @@ function buildLintInventory(files, errors) {
 }
 
 function isTrackedTest(file) {
-  if (scriptTest.test(file)) return true;
-  if (file.endsWith(".swift") && /(?:^|\/)Tests?(?:\/|$)/u.test(file)) return true;
-  if (file.endsWith(".kt") && /\/src\/(?:test|androidTest)\//u.test(file)) return true;
+  if (scriptTest.test(file)) {
+    return true;
+  }
+  if (file.endsWith(".swift") && /(?:^|\/)Tests?(?:\/|$)/u.test(file)) {
+    return true;
+  }
+  if (file.endsWith(".kt") && /\/src\/(?:test|androidTest)\//u.test(file)) {
+    return true;
+  }
   return file.endsWith(".sh") && /(?:^|\/)(?:e2e|tests?)(?:\/|[-_.])/u.test(file);
 }
 function matchesRule(file, rule) {
@@ -118,9 +129,11 @@ function buildTestInventory(files, errors) {
     "expensive-manual",
     "quarantined",
   ];
-  for (const category of required)
-    if (!manifest.categories[category])
+  for (const category of required) {
+    if (!manifest.categories[category]) {
       errors.push(`${testManifestPath}: missing required category ${category}`);
+    }
+  }
   const normalCandidates = new Set([
     ...getUnitFastTestFiles(),
     ...getUnitFastIsolatedTestFiles(),
@@ -139,7 +152,9 @@ function buildTestInventory(files, errors) {
       errors.push(`${file}: unclassified test`);
       continue;
     }
-    if (ruleCounts.has(rule.id)) ruleCounts.set(rule.id, (ruleCounts.get(rule.id) ?? 0) + 1);
+    if (ruleCounts.has(rule.id)) {
+      ruleCounts.set(rule.id, (ruleCounts.get(rule.id) ?? 0) + 1);
+    }
     const category = manifest.categories[rule.category];
     inventory.push({
       path: file,
@@ -150,9 +165,11 @@ function buildTestInventory(files, errors) {
       tracking: manifest.tracking,
     });
   }
-  for (const rule of manifest.rules)
-    if (!rule.allowEmpty && !rule.fallback && (ruleCounts.get(rule.id) ?? 0) === 0)
+  for (const rule of manifest.rules) {
+    if (!rule.allowEmpty && !rule.fallback && (ruleCounts.get(rule.id) ?? 0) === 0) {
       errors.push(`${testManifestPath}: stale rule ${rule.id} matches no tracked test`);
+    }
+  }
   return {
     schemaVersion: 1,
     trackedTestFileCount: inventory.length,
@@ -169,14 +186,19 @@ function buildTestInventory(files, errors) {
 function buildSkipLedger(testInventory, errors) {
   const declarations = [];
   for (const entry of testInventory.files) {
-    if (!scriptTest.test(entry.path)) continue;
+    if (!scriptTest.test(entry.path)) {
+      continue;
+    }
     const lines = readFileSync(path.join(root, entry.path), "utf8").split("\n");
     for (const [index, line] of lines.entries()) {
-      if (!skipDeclaration.test(line)) continue;
-      if (entry.category === "normal-supported")
+      if (!skipDeclaration.test(line)) {
+        continue;
+      }
+      if (entry.category === "normal-supported") {
         errors.push(
           `${entry.path}:${index + 1}: skip declaration is not allowed in supported suite`,
         );
+      }
       declarations.push({
         file: entry.path,
         line: index + 1,
@@ -205,9 +227,12 @@ writeOrCheck(lintInventoryPath, lintInventory, errors);
 writeOrCheck(testInventoryPath, testInventory, errors);
 writeOrCheck(skipLedgerPath, skipLedger, errors);
 if (errors.length > 0) {
-  for (const error of errors) console.error(`[validation-manifest] ${error}`);
+  for (const error of errors) {
+    console.error(`[validation-manifest] ${error}`);
+  }
   process.exitCode = 1;
-} else
+} else {
   console.log(
     `[validation-manifest] ok: lint=${lintInventory.eligibleFileCount} tests=${testInventory.trackedTestFileCount} skip-declarations=${skipLedger.declarationCount}`,
   );
+}

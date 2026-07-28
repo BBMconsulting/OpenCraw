@@ -12,7 +12,9 @@ import {
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, { cwd: root, stdio: "inherit", ...options });
-  if (result.status !== 0) process.exit(result.status ?? 1);
+  if (result.status !== 0) {
+    process.exit(result.status ?? 1);
+  }
 }
 run("node", ["scripts/opencraw-validation-manifests.mjs"]);
 const inventory = JSON.parse(
@@ -55,16 +57,25 @@ const plans = [
 const assigned = new Set(plans.flatMap((plan) => plan.files));
 const unassigned = [...supported].filter((file) => !assigned.has(file));
 if (unassigned.length > 0) {
-  for (const file of unassigned)
+  for (const file of unassigned) {
     console.error(`[test:opencraw] supported file has no execution project: ${file}`);
+  }
   process.exit(1);
 }
 const includeDir = mkdtempSync(path.join(tmpdir(), "opencraw-supported-tests-"));
 try {
   for (const plan of plans) {
-    if (plan.files.length === 0) continue;
+    if (plan.files.length === 0) {
+      continue;
+    }
     const includeFile = path.join(includeDir, `${plan.id}.txt`);
-    writeFileSync(includeFile, JSON.stringify(plan.files.toSorted()), "utf8");
+    writeFileSync(
+      includeFile,
+      JSON.stringify(
+        plan.files.toSorted((left, right) => (left < right ? -1 : left > right ? 1 : 0)),
+      ),
+      "utf8",
+    );
     console.log(`[test:opencraw] ${plan.id}: ${plan.files.length} files`);
     run("node", ["scripts/run-vitest.mjs", "run", "--config", plan.config], {
       env: { ...process.env, OPENCLAW_VITEST_INCLUDE_FILE: includeFile },

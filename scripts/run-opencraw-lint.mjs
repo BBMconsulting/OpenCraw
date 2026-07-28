@@ -41,7 +41,9 @@ function processTreeRssKiB(rootPid) {
   let total = 0;
   while (pending.length > 0) {
     const pid = pending.pop();
-    if (!pid || seen.has(pid)) continue;
+    if (!pid || seen.has(pid)) {
+      continue;
+    }
     seen.add(pid);
     total += procNumbers(`/proc/${pid}/status`, "VmRSS");
     pending.push(...childPids(pid));
@@ -53,7 +55,9 @@ function validateInventory() {
     cwd: root,
     stdio: "inherit",
   });
-  if (result.status !== 0) process.exit(result.status ?? 1);
+  if (result.status !== 0) {
+    process.exit(result.status ?? 1);
+  }
 }
 function waitForExit(child) {
   return new Promise((resolve, reject) => {
@@ -134,10 +138,13 @@ async function runShard(shard, files, context) {
 
 validateInventory();
 const shardFiles = new Map(manifest.shards.map((shard) => [shard.id, []]));
-for (const entry of inventory.files) shardFiles.get(entry.shard)?.push(entry.path);
+for (const entry of inventory.files) {
+  shardFiles.get(entry.shard)?.push(entry.path);
+}
 if (args.includes("--list")) {
-  for (const shard of manifest.shards)
+  for (const shard of manifest.shards) {
     console.log(`${shard.id}\t${shardFiles.get(shard.id).length}\t${shard.owner}`);
+  }
   process.exit(0);
 }
 const selected = requestedShard
@@ -164,7 +171,8 @@ for (const shard of selected) {
     break;
   }
 }
-if (records.every((record) => record.result === "passed"))
+if (records.every((record) => record.result === "passed")) {
   console.log(
     `[lint:full] complete: ${records.length} shards, ${records.reduce((sum, record) => sum + record.fileCount, 0)} assigned files, serial execution`,
   );
+}
