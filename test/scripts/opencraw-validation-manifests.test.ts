@@ -1,6 +1,10 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import {
+  measureOxlintCoverage,
+  parseOxlintReport,
+} from "../../scripts/lib/opencraw-lint-report.mjs";
 
 type Shard = { id: string; includePrefixes: string[]; excludePrefixes?: string[] };
 const under = (file: string, prefix: string) => file === prefix || file.startsWith(`${prefix}/`);
@@ -20,12 +24,15 @@ describe("OpenCraw validation manifests", () => {
     const inventory = JSON.parse(
       readFileSync("config/validation/type-aware-lint-inventory.json", "utf8"),
     ) as {
+      candidateFileCount: number;
       eligibleFileCount: number;
+      configuredIgnoredFileCount: number;
       coverage: {
         assignedExactlyOnce: number;
         duplicateAssignments: number;
         unassigned: number;
       };
+      configuredIgnoredFiles: Array<{ path: string; source: string }>;
       files: Array<{ path: string; shard: string }>;
     };
     expect(inventory.coverage).toEqual({
@@ -35,6 +42,20 @@ describe("OpenCraw validation manifests", () => {
     });
     expect(new Set(inventory.files.map((entry) => entry.path)).size).toBe(
       inventory.eligibleFileCount,
+    );
+    expect(inventory.candidateFileCount).toBe(
+      inventory.eligibleFileCount + inventory.configuredIgnoredFileCount,
+    );
+    expect(new Set(inventory.configuredIgnoredFiles.map((entry) => entry.path)).size).toBe(
+      inventory.configuredIgnoredFileCount,
+    );
+    expect(
+      inventory.configuredIgnoredFiles.some((ignored) =>
+        inventory.files.some((eligible) => eligible.path === ignored.path),
+      ),
+    ).toBe(false);
+    expect(new Set(inventory.configuredIgnoredFiles.map((entry) => entry.source))).toEqual(
+      new Set([".oxlintrc.json"]),
     );
   });
 
@@ -69,5 +90,26 @@ describe("OpenCraw validation manifests", () => {
       { encoding: "utf8" },
     );
     expect(unknown.status).toBe(2);
+  });
+
+  it("parses Oxlint reports and detects incomplete processed-file coverage", () => {
+    const parsed = parseOxlintReport(
+      'artifact preparation complete\n{"diagnostics":[],"number_of_files":3}',
+    );
+    expect(parsed.prelude).toBe("artifact preparation complete\n");
+    expect(measureOxlintCoverage(parsed.report, 3)).toEqual({
+      processedFileCount: 3,
+      coverageMatches: true,
+    });
+    expect(measureOxlintCoverage(parsed.report, 4)).toEqual({
+      processedFileCount: 3,
+      coverageMatches: false,
+    });
+    expect(() => parseOxlintReport("no structured report")).toThrow(
+      "Oxlint JSON report was not found",
+    );
+    expect(() => measureOxlintCoverage({ number_of_files: -1 }, 1)).toThrow(
+      "number_of_files is missing or invalid",
+    );
   });
 });

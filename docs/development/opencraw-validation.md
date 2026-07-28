@@ -41,7 +41,7 @@ graph while preserving type-aware analysis of imported dependencies.
 | core-agents-sessions                |   116 |
 | core-agents-cli                     |    52 |
 | core-agents-rest                    | 1,593 |
-| core-auto-reply                     |   668 |
+| core-auto-reply                     |   665 |
 | core-gateway                        | 1,260 |
 | core-plugin-platform                | 1,369 |
 | core-channels                       |   414 |
@@ -59,14 +59,17 @@ graph while preserving type-aware analysis of imported dependencies.
 | extensions-channel-collaboration    | 1,621 |
 | extensions-channel-messaging        | 1,262 |
 | extensions-model-providers          | 1,015 |
-| extensions-qa-platform              | 1,014 |
+| extensions-qa-platform              | 1,013 |
 | extensions-rest                     | 1,522 |
-| scripts                             |   850 |
+| scripts                             |   851 |
 | tests-tooling                       |   412 |
 | tests-runtime                       |   337 |
 
-The generated coverage proof contains 22,656 eligible files, 22,656 exact
-assignments, zero missing assignments, and zero duplicate assignments.
+The generated coverage proof starts from 22,657 tracked source candidates.
+It records four files excluded by `.oxlintrc.json`, leaving 22,653 lint-eligible
+files with 22,653 exact assignments, zero missing assignments, and zero
+duplicate assignments. Configured exclusions are kept in the generated
+inventory so changes to the lint configuration make the inventory stale.
 
 ## Test-root lint policy
 

@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import ignore from "ignore";
 import {
   getUnitFastIsolatedTestFiles,
   getUnitFastTestFiles,
@@ -12,6 +13,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const update = process.argv.includes("--update");
 const lintManifestPath = "config/validation/type-aware-lint-shards.json";
 const lintInventoryPath = "config/validation/type-aware-lint-inventory.json";
+const oxlintConfigPath = ".oxlintrc.json";
 const testManifestPath = "config/validation/test-suite-classification.json";
 const testInventoryPath = "config/validation/test-suite-inventory.json";
 const skipLedgerPath = "config/validation/test-skip-ledger.json";
@@ -59,11 +61,18 @@ function writeOrCheck(file, value, errors) {
 
 function buildLintInventory(files, errors) {
   const manifest = readJson(lintManifestPath);
-  const eligible = files.filter(
+  const candidates = files.filter(
     (file) =>
       lintExtension.test(file) &&
       manifest.eligibleRoots.some((prefix) => underPrefix(file, prefix)),
   );
+  const oxlintConfig = readJson(oxlintConfigPath);
+  const ignoredByConfig = ignore().add(oxlintConfig.ignorePatterns ?? []);
+  const configuredIgnoredFiles = candidates
+    .filter((file) => ignoredByConfig.ignores(file))
+    .map((file) => ({ path: file, source: oxlintConfigPath }));
+  const configuredIgnoredPaths = new Set(configuredIgnoredFiles.map((entry) => entry.path));
+  const eligible = candidates.filter((file) => !configuredIgnoredPaths.has(file));
   const counts = new Map(manifest.shards.map((shard) => [shard.id, 0]));
   const inventory = eligible.map((file) => {
     const owners = manifest.shards.filter(
@@ -88,7 +97,9 @@ function buildLintInventory(files, errors) {
   const unassigned = inventory.filter((entry) => entry.shard === "UNASSIGNED").length;
   return {
     schemaVersion: 1,
+    candidateFileCount: candidates.length,
     eligibleFileCount: inventory.length,
+    configuredIgnoredFileCount: configuredIgnoredFiles.length,
     coverage: {
       assignedExactlyOnce: inventory.length - unassigned,
       duplicateAssignments: 0,
@@ -98,6 +109,7 @@ function buildLintInventory(files, errors) {
       id: shard.id,
       fileCount: counts.get(shard.id) ?? 0,
     })),
+    configuredIgnoredFiles,
     files: inventory,
   };
 }

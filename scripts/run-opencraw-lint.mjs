@@ -1,9 +1,10 @@
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
 import { fileURLToPath } from "node:url";
+import { measureOxlintCoverage, parseOxlintReport } from "./lib/opencraw-lint-report.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const manifestPath = path.join(root, "config/validation/type-aware-lint-shards.json");
@@ -86,6 +87,11 @@ async function runShard(shard, files, context) {
   const startedAt = new Date().toISOString();
   const started = performance.now();
   let peakRssKiB = 0;
+  const recordDir = path.join(root, ".artifacts/opencraw-validation/lint", context.commit);
+  const reportDir = path.join(recordDir, "reports");
+  mkdirSync(reportDir, { recursive: true });
+  const reportPath = path.join(reportDir, `${shard.id}.json`);
+  rmSync(reportPath, { force: true });
   const projectPath = writeShardProject(shard, files, context);
   console.log(`[lint:full] start ${shard.id}: ${files.length} files (${shard.owner})`);
   const child = spawn(
@@ -94,6 +100,8 @@ async function runShard(shard, files, context) {
       "scripts/run-oxlint.mjs",
       "--tsconfig",
       projectPath,
+      "--format",
+      "json",
       ...(shard.allowRules ?? []).flatMap((rule) => ["--allow", rule]),
       ...(shard.reportUnusedDisableDirectives === false
         ? ["--report-unused-disable-directives-severity=allow"]
@@ -103,15 +111,46 @@ async function runShard(shard, files, context) {
     {
       cwd: root,
       env: { ...process.env, OPENCLAW_LOCAL_CHECK_MODE: "low-memory" },
-      stdio: "inherit",
+      stdio: ["inherit", "pipe", "inherit"],
     },
   );
+  let stdout = "";
+  child.stdout.setEncoding("utf8");
+  child.stdout.on("data", (chunk) => {
+    stdout += chunk;
+  });
   const monitor = setInterval(() => {
     peakRssKiB = Math.max(peakRssKiB, processTreeRssKiB(child.pid));
   }, 100);
   const result = await waitForExit(child);
   clearInterval(monitor);
   const elapsedMs = Math.round(performance.now() - started);
+  let processedFileCount = null;
+  let reportError = null;
+  let reportWritten = false;
+  try {
+    const { prelude, reportText, report } = parseOxlintReport(stdout);
+    if (prelude) {
+      process.stdout.write(prelude);
+    }
+    writeFileSync(reportPath, reportText);
+    reportWritten = true;
+    ({ processedFileCount } = measureOxlintCoverage(report, files.length));
+    if (result.code !== 0 || result.signal) {
+      process.stdout.write(reportText);
+    }
+  } catch (error) {
+    reportError = error instanceof Error ? error.message : String(error);
+    if (stdout) {
+      process.stdout.write(stdout);
+    }
+  }
+  const coverageMatches = processedFileCount === files.length;
+  if (!coverageMatches) {
+    console.error(
+      `[lint:full] ${shard.id}: Oxlint processed ${processedFileCount ?? "unknown"} of ${files.length} assigned files${reportError ? ` (${reportError})` : ""}`,
+    );
+  }
   const record = {
     schemaVersion: 1,
     commit: context.commit,
@@ -119,16 +158,18 @@ async function runShard(shard, files, context) {
     shard: shard.id,
     shardDefinition: shard,
     projectConfig: path.relative(root, projectPath),
+    oxlintReport: reportWritten ? path.relative(root, reportPath) : null,
     fileCount: files.length,
+    processedFileCount,
+    coverageMatches,
+    reportError,
     startedAt,
     elapsedMs,
     peakRssKiB,
     exitCode: result.code,
     signal: result.signal,
-    result: result.code === 0 && !result.signal ? "passed" : "failed",
+    result: result.code === 0 && !result.signal && coverageMatches ? "passed" : "failed",
   };
-  const recordDir = path.join(root, ".artifacts/opencraw-validation/lint", context.commit);
-  mkdirSync(recordDir, { recursive: true });
   writeFileSync(path.join(recordDir, `${shard.id}.json`), `${JSON.stringify(record, null, 2)}\n`);
   console.log(
     `[lint:full] ${record.result} ${shard.id}: elapsed=${(elapsedMs / 1000).toFixed(1)}s peak=${(peakRssKiB / 1024).toFixed(1)}MiB`,

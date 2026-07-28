@@ -1,8 +1,10 @@
 {
   "schemaVersion": 1,
-  "eligibleFileCount": 22656,
+  "candidateFileCount": 22657,
+  "eligibleFileCount": 22653,
+  "configuredIgnoredFileCount": 4,
   "coverage": {
-    "assignedExactlyOnce": 22656,
+    "assignedExactlyOnce": 22653,
     "duplicateAssignments": 0,
     "unassigned": 0
   },
@@ -29,7 +31,7 @@
     },
     {
       "id": "core-auto-reply",
-      "fileCount": 668
+      "fileCount": 665
     },
     {
       "id": "core-gateway",
@@ -101,7 +103,7 @@
     },
     {
       "id": "extensions-qa-platform",
-      "fileCount": 1014
+      "fileCount": 1013
     },
     {
       "id": "extensions-rest",
@@ -109,7 +111,7 @@
     },
     {
       "id": "scripts",
-      "fileCount": 850
+      "fileCount": 851
     },
     {
       "id": "tests-tooling",
@@ -118,6 +120,24 @@
     {
       "id": "tests-runtime",
       "fileCount": 337
+    }
+  ],
+  "configuredIgnoredFiles": [
+    {
+      "path": "extensions/browser/chrome-extension/modules/copilot-runtime.js",
+      "source": ".oxlintrc.json"
+    },
+    {
+      "path": "src/auto-reply/reply/export-html/template.js",
+      "source": ".oxlintrc.json"
+    },
+    {
+      "path": "src/auto-reply/reply/export-html/vendor/highlight.min.js",
+      "source": ".oxlintrc.json"
+    },
+    {
+      "path": "src/auto-reply/reply/export-html/vendor/marked.min.js",
+      "source": ".oxlintrc.json"
     }
   ],
   "files": [
@@ -1027,10 +1047,6 @@
     },
     {
       "path": "extensions/browser/chrome-extension/modules/copilot-runtime.d.ts",
-      "shard": "extensions-qa-platform"
-    },
-    {
-      "path": "extensions/browser/chrome-extension/modules/copilot-runtime.js",
       "shard": "extensions-qa-platform"
     },
     {
@@ -35046,6 +35062,10 @@
       "shard": "scripts"
     },
     {
+      "path": "scripts/lib/opencraw-lint-report.mjs",
+      "shard": "scripts"
+    },
+    {
       "path": "scripts/lib/optional-bundled-clusters-types.d.ts",
       "shard": "scripts"
     },
@@ -48034,19 +48054,7 @@
       "shard": "core-auto-reply"
     },
     {
-      "path": "src/auto-reply/reply/export-html/template.js",
-      "shard": "core-auto-reply"
-    },
-    {
       "path": "src/auto-reply/reply/export-html/template.security.test.ts",
-      "shard": "core-auto-reply"
-    },
-    {
-      "path": "src/auto-reply/reply/export-html/vendor/highlight.min.js",
-      "shard": "core-auto-reply"
-    },
-    {
-      "path": "src/auto-reply/reply/export-html/vendor/marked.min.js",
       "shard": "core-auto-reply"
     },
     {
