@@ -6,7 +6,6 @@ It runs on your devices, in your channels, with your rules.
 This document explains the current state and direction of the project.
 We are still early, so iteration is fast.
 Project overview and developer docs: [`README.md`](README.md)
-Contribution guide: [`CONTRIBUTING.md`](CONTRIBUTING.md)
 
 OpenClaw started as a personal playground to learn AI and build something genuinely useful:
 an assistant that can run real tasks on a real computer.
@@ -51,10 +50,6 @@ Core-owned config and auth state are repaired in core doctor code; plugin-owned 
 
 Security in OpenClaw is a deliberate tradeoff: strong defaults without killing capability.
 The goal is to stay powerful for real work while making risky paths explicit and operator-controlled.
-
-Canonical security policy and reporting:
-
-- [`SECURITY.md`](SECURITY.md)
 
 We prioritize secure defaults, but also expose clear knobs for trusted high-power workflows.
 
