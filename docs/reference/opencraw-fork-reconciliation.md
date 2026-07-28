@@ -4,6 +4,31 @@ This record captures reusable source-integration decisions for the OpenCraw
 fork. Instance-specific paths, credentials, service state, backups, and
 validation session identifiers remain in the private instance log.
 
+## 2026-07-28 public-governance cleanup and dual-G/A architecture record
+
+OpenCraw removed the inherited root contribution and security policies because
+they described OpenClaw governance, maintainers, community routes, and security
+reporting rather than an approved OpenCraw process. The inherited issue forms,
+issue contact links, pull-request template, and CODEOWNERS assignments were also
+removed so inactive or upstream-owned routes cannot be presented as OpenCraw
+governance. No replacement contribution policy, security policy, maintainer
+route, support route, or vulnerability-reporting process was created, and no
+GitHub repository feature setting was changed.
+
+The public README now records BBM's validated Linux-native dual-Gateway/Assistant
+architecture: OpenCraw Primary is the normal user-facing G/A and control plane,
+OpenCraw Rescue provides continuity during Primary service operations, and each
+uses separate identity, configuration, persistent-state, workspace, and runtime
+boundaries. CrawDevAi remains the deployment, update, validation, recovery,
+replication, and standardization framework. This topology is BBM's reference
+appliance architecture, not a requirement for every upstream-compatible
+OpenCraw installation.
+
+This was a public documentation and GitHub-facing project cleanup only. Runtime
+source, private-instance configuration, services, deployment state, upstream
+ancestry, attribution, compatibility contracts, and historical reconciliation
+records were not changed.
+
 ## 2026-07-27 direct validation and identity correction
 
 OpenCraw now records its role as the heart, Gateway/Assistant, and primary

@@ -24,6 +24,28 @@ installation, configuration, and usage documentation remains upstream at
 [docs.openclaw.ai](https://docs.openclaw.ai); OpenCraw does not duplicate it.
 Upstream compatibility is an objective, not a guarantee.
 
+## Linux-native dual-G/A architecture
+
+OpenCraw is optimized and validated as the heart, Gateway/Assistant, and primary
+control plane of BBM's Linux-native Ai Server appliance. The BBM reference
+architecture operates two separately configured OpenCraw Gateway/Assistant
+services:
+
+- **OpenCraw Primary** is the normal user-facing G/A and control plane.
+- **OpenCraw Rescue** provides operational continuity and supports restart,
+  rebuild, repair, recovery, update, and validation while Primary is unavailable
+  or being serviced.
+
+Primary and Rescue use separate service identities, configurations, persistent
+state, workspaces, and runtime boundaries. This separation allows one service to
+remain available while the other is restarted, rebuilt, repaired, recovered,
+updated, or validated.
+
+CrawDevAi is the framework that deploys, updates, validates, recovers,
+replicates, and standardizes this OpenCraw-centered appliance. The dual-G/A
+topology is BBM's reference and validated appliance architecture; it is not a
+requirement for every generic or upstream-compatible OpenCraw installation.
+
 ## Crawbie Pincherton
 
 Crawbie Pincherton, also known as CrawCraw, is the Ai crawfish mascot for all
