@@ -61,7 +61,8 @@
       "id": "inherited-hosted-gate-compatibility",
       "category": "upstream-compatibility",
       "patterns": [
-        "test/scripts/verify-pr-hosted-gates.test.ts"
+        "test/scripts/verify-pr-hosted-gates.test.ts",
+        "test/scripts/ci-workflow-guards.test.ts"
       ]
     },
     {

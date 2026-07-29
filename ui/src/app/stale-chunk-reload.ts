@@ -154,6 +154,18 @@ export async function scheduleStaleChunkReload(deps: StaleChunkReloadDeps = {}):
   return true;
 }
 
+/** Routes recognized lazy-import failures through the guarded reload owner. */
+export function scheduleStaleChunkReloadForImportError(
+  error: unknown,
+  schedule: (deps?: StaleChunkReloadDeps) => Promise<boolean> = scheduleStaleChunkReload,
+): boolean {
+  if (!isStaleChunkImportError(error)) {
+    return false;
+  }
+  void schedule();
+  return true;
+}
+
 // A restarting gateway is the common case behind this banner: the stale chunk
 // exists precisely because the gateway was just updated. Give the restart time
 // to finish rather than declining the reload on the first failed probe.

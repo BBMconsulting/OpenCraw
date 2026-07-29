@@ -97,7 +97,7 @@ Skills own workflows; root owns hard policy and routing.
 
 ## Commands
 
-- Runtime: Node 22.22.3+, 24.15+, or 25.9+; Node 24 recommended. Keep Node + Bun paths working.
+- Runtime: Node 22.22.3+, 24.15+, or 25.9+; Node 26 recommended (CI and release workflows still pin Node 24). Keep Node + Bun paths working.
 - Package manager/runtime: repo defaults only. No swaps without approval.
 - Install: `pnpm install` (keep Bun lock/patches aligned if touched). Agent dependency installation for tests/builds runs only in the assigned trusted CrawDevAi checkout; do not reconcile a local Codex worktree or select another host.
 - CLI: `pnpm openclaw ...` or `pnpm dev`; build: `pnpm build`.
@@ -152,6 +152,7 @@ This section is retained as upstream OpenClaw workflow information. It does not 
 - zsh: quote command globs; unmatched patterns abort before the tool runs.
 - Nested remote shell: avoid local `$()` expansion; use remote-safe validation.
 - zsh: don't use `path` as a variable; it rewrites `$PATH`.
+- File lists into tools: `--name-only -z | xargs -0`; zsh scalars don't word-split, and a zero-file run exits 0 looking clean.
 - `scripts/pr` artifacts: preserve template enum values; validate before prepare.
 - `scripts/pr` subcommands require a PR number; no subcommand `--help` placeholder.
 - `scripts/pr` review: checkout main baseline, then PR, before artifact validation.
@@ -161,9 +162,12 @@ This section is retained as upstream OpenClaw workflow information. It does not 
 - `rg`: options/globs before `--`; `--` immediately before a leading-dash pattern only.
 - `gh --jq` is not standalone `jq`; pipe JSON to `jq` for variables or `--arg`.
 - Shared checkout: serialize `git fetch`; on ref-lock failure, re-read the ref before retry.
+- Main locked elsewhere: detach at `origin/main`, then create the task branch.
 - Git fetch/pull yielding without completion: inspect/stop only the owned process before retry; never overlap retries.
 - `gh api --paginate '<endpoint>' | jq -s ...`; gh `--slurp` may emit nothing and forbids `--jq`/`--template`.
 - Main-bound workflow dispatch: resolve server `main` SHA immediately before dispatch; retry if identity fails after `main` advances.
+- `release-ci-summary` accepts Full Release Validation parent runs only.
+- Diverged release-branch logs: use `--first-parent` plus a bounded count.
 - `gh run view --json` uses `attempt`, not `attemptNumber`.
 - macOS `find` has no `-printf`; use `-print0` plus `stat`.
 - Actions checkout refs: use full 40-char SHAs; short SHAs resolve as branches/tags.
@@ -239,6 +243,8 @@ This section is retained as upstream OpenClaw workflow information. It does not 
 - Split files around ~700 LOC when clarity/testability improves.
 - Never add a `max-lines` suppression. Existing suppressions are grandfathered TODOs; split the file and remove its suppression plus baseline entry.
 - Naming: **OpenClaw** product/docs; `openclaw` CLI/package/path/config.
+- Agents navigate by grep: exported symbols use 2-3 word unique names; no generic single-word exports (`get`, `run`, `create`, `handle`).
+- New modules/dirs concept-named; no new `utils/`, `helpers/`, `common/`. One spelling per concept repo-wide.
 - English: American spelling.
 
 ## Tests
@@ -286,7 +292,7 @@ This section is retained as upstream OpenClaw workflow information. It does not 
 - SecretRef failures isolate to the smallest known owning surface. Proven-inactive surfaces skip; unknown ownership fails closed. Gateway refuses startup only when its own ingress protection cannot be established, config is structurally invalid, or the owning surface is unknown. Otherwise start, mark the exact capability/account/route configured-unavailable, emit a typed redacted diagnostic, and forbid implicit credential fallback. On reload, retain last-known-good only for an unchanged ref+provider; a changed unresolved ref makes that owner cold. Doctor and status must list every degraded owner.
 - Dependency patches/overrides/vendor changes need explicit approval. `pnpm-workspace.yaml` patched dependencies use exact versions only.
 - Release/package guards: no hard-coded retired-package denylists; use generic artifact/dependency checks or fix build source.
-- Lockfiles/shrinkwrap are security surface: review `pnpm-lock.yaml`, `npm-shrinkwrap.json`, `package-lock.json`; root/plugin npm packages ship shrinkwrap, not package-lock.
+- `pnpm-lock.yaml` is the product dependency security review surface; `.github/release/clawhub-cli/package-lock.json` separately pins trusted release tooling. Published packages bundle runtime dependencies where configured and never ship lockfiles; other npm-format locks exist only transiently during checks and publish staging.
 - Carbon pins owner-only: do not change `@buape/carbon` unless Shadow (`@thewilloftheshadow`, verified by `gh`) asks.
 - Releases/publish/version bumps need explicit approval. Use `$release-openclaw-maintainer`.
 - Active release scope lock: freeze the operator-selected cut SHA and release

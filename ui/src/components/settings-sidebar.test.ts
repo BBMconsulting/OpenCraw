@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { i18n } from "../i18n/index.ts";
 import { pt_BR } from "../i18n/locales/pt-BR.ts";
 import { renderSettingsSidebar } from "./settings-sidebar.ts";
+import "./tooltip.ts";
 
 let container: HTMLDivElement;
 
@@ -65,9 +66,9 @@ describe("settings sidebar search", () => {
         searchQuery: "cp",
         searchBlockMatches: [
           {
-            routeId: "config",
+            routeId: "connection",
             label: "Gateway Host",
-            hash: "#settings-general-system",
+            hash: "#settings-connection-host",
           },
         ],
         onExit: vi.fn(),
@@ -84,7 +85,7 @@ describe("settings sidebar search", () => {
         ".settings-sidebar__item-label, .settings-sidebar__subitem-label",
       ),
     ].map((item) => item.textContent?.trim());
-    expect(resultLabels).toEqual(["General", "Gateway Host"]);
+    expect(resultLabels).toEqual(["Gateway", "Gateway Host"]);
   });
 
   it("ranks matching pages before matching blocks and navigates to the block", () => {
@@ -242,7 +243,7 @@ describe("settings sidebar search", () => {
     expect(labels()).toEqual(["Appearance"]);
 
     enterQuery("connections");
-    expect(labels()).toEqual(["Connection", "Channels", "Communications", "Devices"]);
+    expect(labels()).toEqual(["Gateway", "Channels", "Communications", "Talk", "Devices"]);
 
     enterQuery("does-not-exist");
     expect(labels()).toEqual([]);
@@ -363,7 +364,10 @@ describe("settings sidebar search", () => {
 
     renderSidebar(true, "connection refused?token=settings-secret", 3);
     const button = container.querySelector<HTMLButtonElement>(".sidebar-footer-bar__status");
-    expect(button?.title).toBe("connection refused?[redacted-credential]");
+    expect(button?.hasAttribute("title")).toBe(false);
+    expect(
+      (button?.closest("openclaw-tooltip") as (HTMLElement & { content?: string }) | null)?.content,
+    ).toBe("connection refused?[redacted-credential]");
     expect(button?.textContent).toContain("3 queued");
     expect(button?.getAttribute("aria-label")).toBe("Offline — Retry now — 3 queued");
     button?.click();

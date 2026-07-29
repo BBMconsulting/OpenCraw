@@ -150,6 +150,24 @@ Evidence is retained locally under
 `.artifacts/opencraw-validation/tui-before/` and
 `.artifacts/opencraw-validation/tui-after/`.
 
+## Bundled schema facade cold-load budget
+
+The normal supported suite exercises
+`src/plugin-sdk/bundled-channel-config-schema.test.ts` against the real
+plugin-owned Telegram and iMessage schema surfaces. On CrawDevAi, a cold run
+spent 114,430 ms in the single assertion; a filesystem-cache-disabled proof
+measured 174,353 ms. Stage profiling attributed 88,609 ms to the first
+synchronous JITI transformation of the Telegram schema
+graph; the warmed iMessage graph then loaded in 64 ms or less. Process evidence
+showed the Vitest child waiting in `do_epoll_wait` with no external connection or
+child-process dependency.
+
+`pnpm test:opencraw` therefore runs this exact file as its own supported project
+with a 240,000 ms test timeout and a 300,000 ms no-output watchdog. The ordinary
+`unit-fast` project retains the repository-wide 120,000 ms defaults. This
+preserves real cold-source facade coverage while keeping the exceptional budget
+limited to the measured workload.
+
 ## Runner policy
 
 `pnpm validation:policy` proves that the direct validation commands contain

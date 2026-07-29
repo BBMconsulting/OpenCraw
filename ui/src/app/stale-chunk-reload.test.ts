@@ -4,6 +4,7 @@ import {
   installStaleChunkReloadListener,
   isStaleChunkImportError,
   retryStaleChunkReloadWhenReachable,
+  scheduleStaleChunkReloadForImportError,
   scheduleStaleChunkReload,
 } from "./stale-chunk-reload.ts";
 
@@ -83,6 +84,25 @@ describe("isStaleChunkImportError", () => {
     expect(isStaleChunkImportError(new Error("request failed"))).toBe(false);
     expect(isStaleChunkImportError("Importing a module script failed.")).toBe(false);
     expect(isStaleChunkImportError(undefined)).toBe(false);
+  });
+});
+
+describe("scheduleStaleChunkReloadForImportError", () => {
+  it("schedules guarded recovery only for recognized lazy-import failures", () => {
+    const schedule = vi.fn(async () => false);
+
+    expect(
+      scheduleStaleChunkReloadForImportError(
+        new Error("Failed to fetch dynamically imported module: /assets/sidebar.js"),
+        schedule,
+      ),
+    ).toBe(true);
+    expect(schedule).toHaveBeenCalledTimes(1);
+
+    expect(
+      scheduleStaleChunkReloadForImportError(new Error("module evaluation failed"), schedule),
+    ).toBe(false);
+    expect(schedule).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -1,6 +1,6 @@
 # Color Tokens
 
-All tokens are defined in `ui/src/styles/base.css` under `:root` (dark mode default) and `:root[data-theme-mode="light"]` (light override). Theme families may override accent tokens while keeping shared surface tokens.
+All tokens are defined in `ui/src/styles/base.css` under `:root` (dark-mode Craw default) and `:root[data-theme-mode="light"]` (light-mode Craw override). The knot (`data-theme="openknot"`/`openknot-light`) and dash (`dash`/`dash-light`) families override surface, accent, and status tokens in their own `base.css` blocks, each with its own WCAG audit comment.
 
 > Contrast ratios are measured against `--bg` (`#0e1015`) in dark mode using WCAG relative luminance formula. AA requires ≥4.5:1 for normal text, ≥3:1 for large text and UI components.
 
@@ -32,12 +32,12 @@ Light mode uses cool cloud surfaces, blue-gray borders, and a contrast-adjusted
 
 ## Text
 
-| Token            | Dark Value | Contrast on `--bg` | Use                      |
-| ---------------- | ---------- | ------------------ | ------------------------ |
-| `--text`         | `#d4d4d8`  | ~12.9:1 ✅         | Body copy, labels        |
-| `--text-strong`  | `#f4f4f5`  | ~17.3:1 ✅         | Headings, emphasis       |
-| `--muted`        | `#8b8b94`  | ~5.7:1 ✅          | Placeholder, metadata    |
-| `--muted-strong` | `#898990`  | ~5.6:1 ✅          | Secondary text, captions |
+| Token            | Dark Value | Contrast on `--bg` | Use                                                |
+| ---------------- | ---------- | ------------------ | -------------------------------------------------- |
+| `--text`         | `#d4d4d8`  | ~12.9:1 ✅         | Body copy, labels                                  |
+| `--text-strong`  | `#f4f4f5`  | ~17.3:1 ✅         | Headings, emphasis                                 |
+| `--muted`        | `#8b8b94`  | ~5.6:1 ✅          | Placeholder, metadata                              |
+| `--muted-strong` | `#898990`  | ~5.5:1 ✅          | Secondary text, captions; prefer `--text` for body |
 
 ## Craw Accent
 
@@ -62,16 +62,17 @@ Light mode uses cool cloud surfaces, blue-gray borders, and a contrast-adjusted
 
 ## Semantic
 
-| Token           | Dark Value | Light Value | Relevant contrast  | Use                                           |
-| --------------- | ---------- | ----------- | ------------------ | --------------------------------------------- |
-| `--ok`          | `#22c55e`  | `#15803d`   | ~8.4:1 ✅          | Success states, token meter low               |
-| `--warn`        | `#f59e0b`  | `#b45309`   | ~8.9:1 ✅          | Warnings, degraded states                     |
-| `--danger`      | `#ef4444`  | `#dc2626`   | ~5.1:1 ✅          | Errors, destructive actions, token meter high |
-| `--info`        | `#3b82f6`  | `#2563eb`   | ~5.2:1 ✅          | Informational, token meter mid                |
-| `--destructive` | `#d32f2f`  | `#dc2626`   | 4.77:1 / 4.63:1 ✅ | Text-bearing destructive fills                |
+| Token           | Dark Value | Light Value | Paired-tint audit (dark/light) | Use                                           |
+| --------------- | ---------- | ----------- | ------------------------------ | --------------------------------------------- |
+| `--ok`          | `#22c55e`  | `#166534`   | 6.66:1 / 5.70:1 ✅             | Success states, token meter low               |
+| `--warn`        | `#f59e0b`  | `#92400e`   | 6.93:1 / 5.66:1 ✅             | Warnings, degraded states                     |
+| `--danger`      | `#f87171`  | `#b91c1c`   | 5.52:1 / 5.10:1 ✅             | Errors, destructive actions, token meter high |
+| `--info`        | `#60a5fa`  | `#1d4ed8`   | 5.97:1 / 5.34:1 ✅             | Informational, token meter mid                |
+| `--destructive` | `#d32f2f`  | `#dc2626`   | 4.77:1 / 4.63:1 ✅             | Text-bearing destructive fills                |
 
-Semantic text rows report contrast on `--bg`. The destructive row reports
-`--destructive-foreground` on the destructive fill in dark/light order.
+Each semantic token has `-muted` (0.75 alpha) and `-subtle` (0.08 alpha) siblings that must stay synchronized with the base hex. The paired-tint audit measures the base label color on its own subtle tint against the worst documented card/page surface for each mode. The destructive row instead measures `--destructive-foreground` on the destructive fill. Bases remain literal hex because `widget-theme.ts` publishes them to MCP app guest documents where `color-mix()` would not resolve.
+
+The audit is bounded to documented card and page surfaces. Hover and input surfaces require their own review; the current `.plugins-row-message--error` over a hovered dash-light row is the recorded remaining 4.28:1 gap.
 
 ## Border
 
@@ -95,6 +96,6 @@ Semantic text rows report contrast on `--bg`. The destructive row reports
 
 - ❌ Hardcoded hex colours in component CSS — always use tokens
 - ❌ `--accent-subtle` as text colour — fails contrast on dark backgrounds
-- ❌ Using `--accent-2` for success — use `--ok` only
+- ❌ Mixing `--ok` and `--accent-2` for "green success" — use `--ok` only
 - ❌ Using `--danger` for non-error states (e.g. "hot feature") — reserve for errors and destructive actions
-- ❌ `--muted-strong` for normal body text — reserve it for secondary text and use `--text` for body copy
+- ❌ `--muted-strong` for normal body text — it does not pass on every hover/input surface; use `--text` instead

@@ -39,10 +39,10 @@ describe("renderApps", () => {
   it("renders the hero and one heading per section", () => {
     const container = renderIntoContainer();
     expect(container.querySelector(".apps-hero__title")?.textContent).toBe(
-      "Take OpenClaw everywhere",
+      "Upstream OpenClaw apps",
     );
     expect(container.querySelector(".apps-hero__tagline")?.textContent).toContain(
-      "Companion apps for your phone",
+      "Official OpenClaw companion apps",
     );
     const headings = Array.from(container.querySelectorAll(".apps-section__heading")).map(
       (heading) => heading.textContent,

@@ -27,19 +27,35 @@ const supported = new Set(
 );
 const isolated = new Set(getUnitFastIsolatedTestFiles());
 const timer = new Set(getUnitFastTimerTestFiles());
+const coldPluginFacade = new Set(["src/plugin-sdk/bundled-channel-config-schema.test.ts"]);
+// Cold source-facade loading performs one required JITI transform of the Telegram
+// schema graph. CrawDevAi measurements are 88.61-174.36s, so keep both budgets
+// explicit and scoped to this one-file supported project.
+const COLD_PLUGIN_FACADE_TEST_TIMEOUT_MS = 240_000;
+const COLD_PLUGIN_FACADE_NO_OUTPUT_TIMEOUT_MS = 300_000;
 const fast = new Set(getUnitFastTestFiles());
 const plans = [
   {
     id: "unit-fast",
     config: "test/vitest/vitest.unit-fast.config.ts",
     files: [...supported].filter(
-      (file) => fast.has(file) && !isolated.has(file) && !timer.has(file),
+      (file) =>
+        fast.has(file) && !isolated.has(file) && !timer.has(file) && !coldPluginFacade.has(file),
     ),
   },
   {
     id: "unit-fast-isolated",
     config: "test/vitest/vitest.unit-fast-isolated.config.ts",
     files: [...supported].filter((file) => isolated.has(file)),
+  },
+  {
+    id: "unit-fast-cold-plugin-facade",
+    config: "test/vitest/vitest.unit-fast.config.ts",
+    files: [...supported].filter((file) => coldPluginFacade.has(file)),
+    vitestArgs: ["--testTimeout", String(COLD_PLUGIN_FACADE_TEST_TIMEOUT_MS)],
+    env: {
+      OPENCLAW_VITEST_NO_OUTPUT_TIMEOUT_MS: String(COLD_PLUGIN_FACADE_NO_OUTPUT_TIMEOUT_MS),
+    },
   },
   {
     id: "unit-fast-fake-timers",
@@ -77,9 +93,17 @@ try {
       "utf8",
     );
     console.log(`[test:opencraw] ${plan.id}: ${plan.files.length} files`);
-    run("node", ["scripts/run-vitest.mjs", "run", "--config", plan.config], {
-      env: { ...process.env, OPENCLAW_VITEST_INCLUDE_FILE: includeFile },
-    });
+    run(
+      "node",
+      ["scripts/run-vitest.mjs", "run", "--config", plan.config, ...(plan.vitestArgs ?? [])],
+      {
+        env: {
+          ...process.env,
+          OPENCLAW_VITEST_INCLUDE_FILE: includeFile,
+          ...plan.env,
+        },
+      },
+    );
   }
 } finally {
   rmSync(includeDir, { recursive: true, force: true });

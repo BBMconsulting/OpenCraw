@@ -60,8 +60,6 @@ const directPaths = [
   "scripts/lib/live-docker-auth.sh",
   "scripts/mantis/build-telegram-desktop-proof-evidence.mjs",
   "scripts/mantis/build-telegram-evidence.mjs",
-  "scripts/perf/issue-78851-model-resolution.ts",
-  "scripts/repro/code-mode-namespace-live-docker.sh",
   "scripts/run-opencraw-lint.mjs",
   "scripts/run-opencraw-supported-tests.mjs",
   "scripts/run-vitest.mjs",

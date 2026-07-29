@@ -14,6 +14,7 @@ import { performance } from "node:perf_hooks";
 import {
   LIVE_DOCKER_AUTH_SHELL_TARGETS,
   detectChangedLanesForPaths,
+  hasDeadcodeScannedSource,
   listChangedPathsFromGit,
   listStagedChangedPaths,
 } from "./changed-lanes.mjs";
@@ -28,8 +29,8 @@ import {
 import { runManagedCommand } from "./lib/managed-child-process.mjs";
 import { createSparseTsgoSkipEnv } from "./lib/tsgo-sparse-guard.mjs";
 
-const SHRINKWRAP_POLICY_PATH_RE =
-  /^(?:npm-shrinkwrap\.json|package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|scripts\/generate-npm-shrinkwrap\.mjs|extensions\/[^/]+\/(?:package\.json|npm-shrinkwrap\.json))$/u;
+const NPM_LOCK_POLICY_PATH_RE =
+  /^(?:package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|scripts\/generate-npm-package-lock\.mjs|(?:extensions|packages)\/[^/]+(?:\/.*)?\/package\.json)$/u;
 const PROMPT_SNAPSHOT_CHECK_PATH_RE =
   /^(?:scripts\/(?:generate-prompt-snapshots\.ts|prompt-snapshot-files\.ts|sync-codex-model-prompt-fixture\.ts)|test\/helpers\/agents\/(?:happy-path-prompt-snapshots|prompt-snapshot-paths)\.ts|test\/fixtures\/agents\/prompt-snapshots\/.+)$/u;
 const PROMPT_SNAPSHOT_OWNER_TEST_PATH_RE =
@@ -72,13 +73,13 @@ const MACOS_APP_CI_PATH_RE =
   /^(?:apps\/(?:macos|macos-mlx-tts|shared|swabble)\/|Swabble\/|scripts\/(?:codesign-mac-app|create-dmg|notarize-mac-artifact|package-mac-app|package-mac-dist)\.sh$|scripts\/lib\/(?:plistbuddy|swift-toolchain)\.sh$|test\/scripts\/(?:codesign-mac-app|create-dmg|notarize-mac-artifact|package-mac-app|package-mac-dist)\.test\.ts$)/u;
 let corepackPnpmShimDir;
 let corepackPnpmShimCleanupRegistered = false;
-let shrinkwrapPackageDirsForChangedPaths;
+let npmLockPackageDirsForChangedPaths;
 
 async function ensureChangedCheckRuntimeDependencies(paths) {
-  if (!shouldRunShrinkwrapGuard(paths) || shrinkwrapPackageDirsForChangedPaths) {
+  if (!shouldRunNpmLockGuard(paths) || npmLockPackageDirsForChangedPaths) {
     return;
   }
-  ({ shrinkwrapPackageDirsForChangedPaths } = await import("./generate-npm-shrinkwrap.mjs"));
+  ({ npmLockPackageDirsForChangedPaths } = await import("./generate-npm-package-lock.mjs"));
 }
 
 // Imported consumers expect the synchronous planning API. Direct CLI execution
@@ -141,8 +142,8 @@ function shouldSkipAppLintForMissingSwiftlint(options = {}) {
   return platform !== "darwin" && !swiftlintAvailable;
 }
 
-export function shouldRunShrinkwrapGuard(paths) {
-  return paths.some((changedPath) => SHRINKWRAP_POLICY_PATH_RE.test(changedPath));
+export function shouldRunNpmLockGuard(paths) {
+  return paths.some((changedPath) => NPM_LOCK_POLICY_PATH_RE.test(changedPath));
 }
 
 export function shouldRunPromptSnapshotCheck(paths) {
@@ -211,26 +212,25 @@ export function shouldRunTestTempCreationReport(paths) {
   );
 }
 
-export function createShrinkwrapGuardCommand(paths) {
-  if (!shouldRunShrinkwrapGuard(paths)) {
+export function createNpmLockGuardCommand(paths) {
+  if (!shouldRunNpmLockGuard(paths)) {
     return null;
   }
-  if (!shrinkwrapPackageDirsForChangedPaths) {
-    throw new Error("changed-check shrinkwrap runtime dependencies were not loaded");
+  if (!npmLockPackageDirsForChangedPaths) {
+    throw new Error("changed-check npm-lock runtime dependencies were not loaded");
   }
-  const packageDirs = shrinkwrapPackageDirsForChangedPaths(paths);
+  const packageDirs = npmLockPackageDirsForChangedPaths(paths);
   if (packageDirs.length === 0) {
     return null;
   }
   return {
     name:
       packageDirs.length === 1
-        ? "npm shrinkwrap guard"
-        : `npm shrinkwrap guard (${packageDirs.length} packages)`,
+        ? "npm package-lock guard"
+        : `npm package-lock guard (${packageDirs.length} packages)`,
     bin: "node",
     args: [
-      "scripts/generate-npm-shrinkwrap.mjs",
-      "--check",
+      "scripts/generate-npm-package-lock.mjs",
       ...packageDirs.flatMap((packageDir) => ["--package-dir", packageDir]),
     ],
   };
@@ -255,6 +255,32 @@ export function createChangedCheckPlan(result, options = {}) {
   };
   const addTypecheck = (name, args) => add(name, args, createSparseTsgoSkipEnv(baseEnv));
   const addLint = (name, args) => add(name, args, baseEnv);
+  const addTargetedLint = (createCommand, lintablePathRe, fallbackName, fallbackArgs) => {
+    const targets = result.paths.filter((changedPath) => lintablePathRe.test(changedPath));
+    const otherPaths = result.paths.filter((changedPath) => !lintablePathRe.test(changedPath));
+    const targetedCommands = [];
+
+    for (let offset = 0; offset < targets.length; offset += TARGETED_LINT_PATH_LIMIT) {
+      const command = createCommand(
+        [...otherPaths, ...targets.slice(offset, offset + TARGETED_LINT_PATH_LIMIT)],
+        baseEnv,
+      );
+      if (!command) {
+        addLint(fallbackName, fallbackArgs);
+        return false;
+      }
+      targetedCommands.push(command);
+    }
+
+    if (targetedCommands.length === 0) {
+      addLint(fallbackName, fallbackArgs);
+      return false;
+    }
+    for (const command of targetedCommands) {
+      addCommand(command.name, command.bin, command.args, command.env);
+    }
+    return true;
+  };
   const addTestTempCreationReport = () => {
     if (!shouldRunTestTempCreationReport(result.paths)) {
       return;
@@ -314,12 +340,12 @@ export function createChangedCheckPlan(result, options = {}) {
       ...result.paths,
     ]);
   }
-  const shrinkwrapGuardCommand = createShrinkwrapGuardCommand(result.paths);
-  if (shrinkwrapGuardCommand) {
+  const npmLockGuardCommand = createNpmLockGuardCommand(result.paths);
+  if (npmLockGuardCommand) {
     addCommand(
-      shrinkwrapGuardCommand.name,
-      shrinkwrapGuardCommand.bin,
-      shrinkwrapGuardCommand.args,
+      npmLockGuardCommand.name,
+      npmLockGuardCommand.bin,
+      npmLockGuardCommand.args,
       baseEnv,
     );
   }
@@ -340,6 +366,9 @@ export function createChangedCheckPlan(result, options = {}) {
       ["test:serial", "src/plugins/bundled-plugin-metadata.test.ts"],
       baseEnv,
     );
+  }
+  if (result.lanes.all || result.lanes.bundledChannelConfigMetadata) {
+    add("bundled channel config metadata", ["check:bundled-channel-config-metadata"]);
   }
   if (shouldRunSqliteSessionSchemaBaselineCheck(result.paths)) {
     add("SQLite sessions/transcripts schema baseline", ["sqlite:sessions-schema:check"]);
@@ -373,6 +402,17 @@ export function createChangedCheckPlan(result, options = {}) {
     );
   }
   add("package patch guard", ["deps:patches:check"]);
+  if (
+    hasDeadcodeScannedSource(result.paths) &&
+    !isTruthyEnvFlag(baseEnv.OPENCLAW_CHECK_CHANGED_SKIP_DEADCODE)
+  ) {
+    addCommand(
+      "dead export scan (skip with OPENCLAW_CHECK_CHANGED_SKIP_DEADCODE=1)",
+      "node",
+      ["scripts/check-deadcode-exports.mjs"],
+      baseEnv,
+    );
+  }
 
   if (result.docsOnly) {
     return {
@@ -451,17 +491,9 @@ export function createChangedCheckPlan(result, options = {}) {
   }
 
   if (lanes.core || lanes.coreTests || lanes.ui) {
-    const coreLintCommand = createTargetedCoreLintCommand(result.paths, baseEnv);
-    if (coreLintCommand) {
-      addCommand(
-        coreLintCommand.name,
-        coreLintCommand.bin,
-        coreLintCommand.args,
-        coreLintCommand.env,
-      );
-    } else {
-      addLint("lint core", ["lint:core"]);
-    }
+    addTargetedLint(createTargetedCoreLintCommand, LINTABLE_CORE_PATH_RE, "lint core", [
+      "lint:core",
+    ]);
   }
   if (
     lanes.liveDockerTooling &&
@@ -471,31 +503,21 @@ export function createChangedCheckPlan(result, options = {}) {
     addLint("lint core", ["lint:core"]);
   }
   if (lanes.extensions || lanes.extensionTests) {
-    const extensionLintCommand = createTargetedExtensionLintCommand(result.paths, baseEnv);
-    if (extensionLintCommand) {
-      addCommand(
-        extensionLintCommand.name,
-        extensionLintCommand.bin,
-        extensionLintCommand.args,
-        extensionLintCommand.env,
-      );
-    } else {
-      addLint("lint extensions", ["lint:extensions"]);
-    }
+    addTargetedLint(
+      createTargetedExtensionLintCommand,
+      LINTABLE_EXTENSION_PATH_RE,
+      "lint extensions",
+      ["lint:extensions"],
+    );
   }
   if (lanes.tooling || lanes.liveDockerTooling) {
-    const scriptLintCommand = createTargetedScriptLintCommand(result.paths, baseEnv);
-    if (scriptLintCommand) {
+    if (
+      addTargetedLint(createTargetedScriptLintCommand, LINTABLE_SCRIPT_PATH_RE, "lint scripts", [
+        "lint:scripts",
+      ])
+    ) {
       addLint("lint docker-e2e", ["lint:docker-e2e"]);
       addLint("raw HTTP/2 import guard", ["lint:tmp:no-raw-http2-imports"]);
-      addCommand(
-        scriptLintCommand.name,
-        scriptLintCommand.bin,
-        scriptLintCommand.args,
-        scriptLintCommand.env,
-      );
-    } else {
-      addLint("lint scripts", ["lint:scripts"]);
     }
   }
   if (lanes.apps && shouldSkipAppLintForMissingSwiftlint({ ...options, env: baseEnv })) {
@@ -602,6 +624,9 @@ function createTargetedOxlintCommand({
     paths.some(
       (changedPath) =>
         !lintablePathRe.test(changedPath) &&
+        !LINTABLE_CORE_PATH_RE.test(changedPath) &&
+        !LINTABLE_EXTENSION_PATH_RE.test(changedPath) &&
+        !LINTABLE_SCRIPT_PATH_RE.test(changedPath) &&
         !neutralPathRe.test(changedPath) &&
         !MARKDOWN_LINT_OPTIMIZATION_NEUTRAL_PATH_RE.test(changedPath),
     )

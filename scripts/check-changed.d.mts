@@ -30,7 +30,7 @@ export type TargetedLintCommand = Required<
 >;
 
 export function createChangedCheckChildEnv(baseEnv?: NodeJS.ProcessEnv): NodeJS.ProcessEnv;
-export function shouldRunShrinkwrapGuard(paths: string[]): boolean;
+export function shouldRunNpmLockGuard(paths: string[]): boolean;
 export function shouldRunPromptSnapshotCheck(paths: string[]): boolean;
 export function shouldRunPromptSnapshotOwnerTest(paths: string[]): boolean;
 export function shouldRunControlUiI18nVerify(paths: string[]): boolean;
@@ -42,7 +42,7 @@ export function shouldRunDeprecationHygieneChecks(paths: string[]): boolean;
 export function shouldRunCanvasA2uiNativeResourceCheck(paths: string[]): boolean;
 export function shouldRunAppcastOwnerTest(paths: string[]): boolean;
 export function shouldRunTestTempCreationReport(paths: string[]): boolean;
-export function createShrinkwrapGuardCommand(paths: string[]): ChangedCheckCommand | null;
+export function createNpmLockGuardCommand(paths: string[]): ChangedCheckCommand | null;
 export function createChangedCheckPlan(
   result: ChangedLaneResult,
   options?: ChangedCheckPlanOptions,
