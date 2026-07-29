@@ -8889,6 +8889,11 @@ Do not edit it by hand; run `pnpm docs:map:gen`.
 - Route: /reference/opencraw-fork-reconciliation
 - Headings:
   - H1: OpenCraw Fork Reconciliation Record
+  - H2: 2026-07-29 upstream synchronization
+  - H3: July 29 synchronization outcome
+  - H3: July 29 reconciliation decisions
+  - H3: Validation corrections
+  - H3: July 29 source validation
   - H2: 2026-07-28 public-governance cleanup and dual-G/A architecture record
   - H2: 2026-07-27 direct validation and identity correction
   - H2: 2026-07-27 Craw palette and retained-workflow correction

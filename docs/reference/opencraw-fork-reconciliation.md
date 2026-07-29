@@ -4,6 +4,107 @@ This record captures reusable source-integration decisions for the OpenCraw
 fork. Instance-specific paths, credentials, service state, backups, and
 validation session identifiers remain in the private instance log.
 
+## 2026-07-29 upstream synchronization
+
+### July 29 synchronization outcome
+
+OpenCraw was reconciled with the fixed upstream target
+`b231de68090643601cd213412e85afb4a08c79b7` by a normal two-parent merge. The
+cycle compared 42 local commits and 1,794 upstream commits across 374 local
+paths, 9,820 upstream paths, 204 overlapping paths, and 136 virtual-merge
+conflicts before applying the resolutions below.
+
+| Item                                  | Reference                                  |
+| ------------------------------------- | ------------------------------------------ |
+| First parent (prior OpenCraw `main`)  | `cacb14ff4a532aeed49df6872fc57870d2f9212a` |
+| Second parent (fixed upstream target) | `b231de68090643601cd213412e85afb4a08c79b7` |
+| Prior `origin/main`                   | `cacb14ff4a532aeed49df6872fc57870d2f9212a` |
+| Prior upstream merge base             | `85fda04df765639c2e2695035f8d99b7d8f7319b` |
+| Reconciled merge commit               | `91014a37ab9872aeab50f2a75b5d48ca4b5c4ddc` |
+| Reconciled tree                       | `f89700c5b9d2dbf412da417de316aaec00785b87` |
+| Resulting upstream merge base         | `b231de68090643601cd213412e85afb4a08c79b7` |
+
+The selected upstream target is the merge commit's second parent and is now an
+ancestor of OpenCraw `main`. The synchronization did not squash, rebase, force
+push, or use an ancestry-marker workaround.
+
+### July 29 reconciliation decisions
+
+| Area                                        | Decision                                                                                                                                                                                                                                                 |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Visible identity and appliance architecture | Retain the OpenCraw name, deterministic Craw assets and palette, OpenCraw Control presentation, concise fork entry point, and BBM dual-Gateway/Assistant architecture. Preserve compatibility-sensitive `openclaw` identifiers and upstream attribution. |
+| Governance boundary                         | Retain deletion of unapproved OpenClaw maintainer, contribution, ownership, issue, and security-reporting routes. Do not invent replacement OpenCraw governance or change repository feature settings.                                                   |
+| Validation ownership                        | Retain direct CrawDevAi validation and exactly the reviewed Docs and OpenCraw CI workflows. Keep Testbox, Crabbox, Blacksmith, upstream organization bots, external hosts, and removed workflow adapters unavailable.                                    |
+| Validation reliability                      | Preserve and regenerate the full type-aware lint inventory, ownership shards, supported-test classification, skip ledger, bounded cold-runner path, and direct-host policy for the expanded upstream tree.                                               |
+| Session and configuration recovery          | Retain unindexed legacy-history recovery, isolated validation-session keys, and last-good configuration recovery. Adapt them to the current upstream SQLite, session-reader, migration, and configuration structures.                                    |
+| Execution and startup guards                | Retain the concrete-task execution guard and snapshot-based TUI catalog metadata path; current upstream does not supersede either behavior.                                                                                                              |
+| Dependency boundary                         | Accept upstream removal of committed npm shrinkwraps in favor of the reviewed pnpm lock plus transient generated package locks. This replaces the prior implementation while preserving the dependency-review purpose.                                   |
+| Other upstream changes                      | Accept compatible application, provider, channel, Gateway, memory, database, tool, native-platform, dependency, and security changes after validating that they do not bypass the retained requirements.                                                 |
+
+No material downstream customization was removed. The npm shrinkwrap transition
+is the only implementation replaced by upstream because the current upstream
+design fulfills the maintained dependency-boundary purpose more appropriately.
+
+### Validation corrections
+
+Review and exact-tree validation identified and corrected the following
+integration defects before the merge commit:
+
+- the session reader now includes the legacy SQLite sessions table where
+  required by downstream history recovery;
+- recoverable lazy-chunk failures in the sidebar, critical-observer notice, and
+  narration paths now use the maintained reload recovery seam;
+- the root unsupported-configuration schema marker is preserved;
+- server preference writes retain transiently failed values and serialize
+  same-client reconnect and replacement-client drains without losing pending
+  edits;
+- the serialized Control UI mock Gateway restores `window.WebSocket` after each
+  test, preventing state leakage into later non-isolated tests;
+- validation fixtures use unique cleaned SQLite paths, and the one legitimately
+  cold plugin-facade test has a measured, narrowly scoped runtime budget.
+
+Automated review completed three cycles. The final cycle reported no remaining
+finding, and the exact source-only review fixture matched the canonical
+candidate patch. Secret scanning reported no verified secret.
+
+### July 29 source validation
+
+The exact reconciled source passed:
+
+- frozen dependency installation and validation manifests covering 24,308
+  lint-eligible files, 9,669 classified tests, and 927 skip declarations;
+- the normal supported suite: 1,214 files and 13,837 tests with zero expected
+  skips in the authoritative result;
+- the complete Control UI suite: 465 files and 6,771 tests;
+- all 28 serialized type-aware lint shards with complete assignment of 24,308
+  files, followed by full-project `tsgo`;
+- formatting for 25,955 files and documentation checks covering 746 formatted
+  files, 747 linted files, 762 MDX files, and 6,262 internal links with zero
+  broken links;
+- retained-workflow action and security validation, direct-host policy,
+  generated asset, plugin inventory, plugin SDK surface/API/export, and plugin
+  ownership-boundary checks;
+- the exact merge-commit production build, including generated assets, unified
+  runtime output, SDK declarations, Control UI, compressed sidecars, and
+  performance budgets.
+
+The first unbounded production-build attempt was resource-exhausted by a
+host-global OOM while Primary and Rescue remained live; it was not classified
+as passed. The full build succeeded with the repository-supported
+`OPENCLAW_TSDOWN_MAX_OLD_SPACE_MB=10240` control, retaining host and service
+headroom.
+
+The supplemental `check:changed` aggregate passed its first eight checks but
+could not pass 9,728 staged paths to one formatter process because the host
+returned `E2BIG`. This wrapper result is classified as an infrastructure
+failure, not a pass. Its authoritative full formatter and every selected
+repository lane were run directly and passed; no required gate relies on the
+failed aggregate result.
+
+Operational paths, service configuration, rollback material, migration
+evidence, and production-interface request records remain in the private
+instance log.
+
 ## 2026-07-28 public-governance cleanup and dual-G/A architecture record
 
 OpenCraw removed the inherited root contribution and security policies because
